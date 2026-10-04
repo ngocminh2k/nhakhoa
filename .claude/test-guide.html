@@ -1,0 +1,759 @@
+<title>Hướng Dẫn Test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+  /* Layout: sidebar nav + scrollable content */
+  :root {
+    --green-dark:  #004529;
+    --green:       #005A36;
+    --green-light: #e6f2ec;
+    --gold:        #EABF0E;
+    --gold-dim:    #c9a50c;
+    --bg:          #FAF8F5;
+    --surface:     #ffffff;
+    --border:      #e2ded8;
+    --text:        #1a1a18;
+    --muted:       #6b6860;
+    --code-bg:     #f0ede8;
+    --pass:        #16a34a;
+    --pass-bg:     #dcfce7;
+    --warn:        #b45309;
+    --warn-bg:     #fef3c7;
+    --danger:      #dc2626;
+    --danger-bg:   #fee2e2;
+    --radius:      8px;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #111410;
+      --surface:   #1c1f19;
+      --border:    #2e3229;
+      --text:      #edecea;
+      --muted:     #8a8880;
+      --code-bg:   #252820;
+      --green-light: #132b1e;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #111410;
+    --surface:   #1c1f19;
+    --border:    #2e3229;
+    --text:      #edecea;
+    --muted:     #8a8880;
+    --code-bg:   #252820;
+    --green-light: #132b1e;
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14.5px;
+    line-height: 1.65;
+    display: flex;
+    min-height: 100%;
+  }
+
+  /* Sidebar */
+  nav {
+    width: 240px;
+    min-width: 240px;
+    background: var(--green-dark);
+    padding: 24px 0 32px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .nav-brand {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 12px;
+  }
+  .nav-brand-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .nav-brand-sub {
+    font-size: 11px;
+    color: var(--gold);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  nav a {
+    display: block;
+    padding: 8px 20px;
+    color: rgba(255,255,255,0.72);
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  nav a:hover { color: #fff; background: rgba(255,255,255,0.07); }
+  nav a.active { color: #fff; border-color: var(--gold); background: rgba(234,191,14,0.12); }
+  .nav-section-label {
+    padding: 16px 20px 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+
+  /* Main */
+  main {
+    flex: 1;
+    min-width: 0;
+    padding: 40px 48px;
+    max-width: 900px;
+  }
+
+  /* Sections */
+  section { margin-bottom: 56px; }
+  section:target { scroll-margin-top: 24px; }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin-bottom: 6px;
+  }
+  .page-sub {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--green);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-wrap: balance;
+  }
+  h2 .num {
+    background: var(--green);
+    color: #fff;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    margin-top: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  p { margin-bottom: 12px; color: var(--text); max-width: 68ch; }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    background: var(--green);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-body { min-width: 0; }
+  .step-title { font-weight: 700; font-size: 13.5px; margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+  /* Code */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 10px 0 16px;
+    white-space: pre;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* Inline label for method */
+  .method {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .get  { background: #dbeafe; color: #1d4ed8; }
+  .post { background: #dcfce7; color: #15803d; }
+
+  /* Table */
+  .tbl-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin: 12px 0 20px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 13px; }
+  th { background: var(--green-light); color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; padding: 10px 14px; text-align: left; white-space: nowrap; }
+  td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-pass   { background: var(--pass-bg); color: var(--pass); }
+  .badge-warn   { background: var(--warn-bg); color: var(--warn); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+
+  /* Callout */
+  .callout {
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    margin: 12px 0;
+    display: flex;
+    gap: 10px;
+  }
+  .callout-green { background: var(--green-light); border-left: 3px solid var(--green); }
+  .callout-gold  { background: var(--warn-bg); border-left: 3px solid var(--gold-dim); }
+
+  /* Endpoint box */
+  .endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .endpoint-line { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .endpoint-url { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+
+  /* Result examples */
+  .result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  @media (max-width: 600px) { .result-row { grid-template-columns: 1fr; } }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    nav { display: none; }
+    main { padding: 24px 16px; }
+  }
+</style>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-brand-name">Nha Khoa Kim Dung</div>
+    <div class="nav-brand-sub">Hướng dẫn kiểm thử</div>
+  </div>
+
+  <div class="nav-section-label">Chuẩn bị</div>
+  <a href="#setup" class="active">Khởi động server</a>
+  <a href="#accounts">Tài khoản & khóa API</a>
+
+  <div class="nav-section-label">Kiểm thử</div>
+  <a href="#public">Trang công khai</a>
+  <a href="#api">Đăng bài qua API</a>
+  <a href="#admin">Admin portal</a>
+  <a href="#pagination">Phân trang</a>
+  <a href="#unit">Unit tests</a>
+
+  <div class="nav-section-label">Nâng cao</div>
+  <a href="#security">Bảo mật</a>
+  <a href="#scripts">Script tiện ích</a>
+</nav>
+
+<main>
+  <h1>Hướng Dẫn Kiểm Thử</h1>
+  <p class="page-sub">Backend PHP/MariaDB · Nha Khoa Kim Dung · phiên bản 2026</p>
+
+  <!-- SETUP -->
+  <section id="setup">
+    <h2><span class="num">1</span>Khởi động server local</h2>
+    <p>Yêu cầu: <strong>PHP 8.x</strong>, <strong>MariaDB 10.6+</strong> đang chạy, database <code>nhakhoa_db</code> đã được tạo.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Cấu hình biến môi trường</div>
+          <div class="step-desc">Sao chép file mẫu, sau đó điền thông tin kết nối MariaDB thực tế của bạn.</div>
+        </div>
+      </div>
+    </div>
+    <pre>copy .env.example .env
+# Sửa .env: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS</pre>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Khởi tạo database (schema + seed)</div>
+          <div class="step-desc">Truy cập endpoint này một lần để tạo toàn bộ bảng và dữ liệu mẫu.</div>
+        </div>
+      </div>
+    </div>
+    <pre>http://localhost:8080/backend/install.php</pre>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Khởi động PHP built-in server</div>
+          <div class="step-desc">Chạy từ thư mục gốc của dự án. <code>router.php</code> sẽ điều hướng tất cả request.</div>
+        </div>
+      </div>
+    </div>
+    <pre>& "C:\Users\minhd\AppData\Local\Programs\php\php.exe" -S 127.0.0.1:8080 router.php</pre>
+
+    <div class="callout callout-green">
+      <span>✅</span>
+      <span>Server sẵn sàng khi trình duyệt mở <strong>http://localhost:8080</strong> hiển thị trang chủ Nha Khoa Kim Dung.</span>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ACCOUNTS -->
+  <section id="accounts">
+    <h2><span class="num">2</span>Tài khoản & khóa API</h2>
+
+    <h3>Admin Portal</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Trường</th><th>Giá trị</th></tr>
+        <tr><td>URL đăng nhập</td><td><code>http://localhost:8080/admin/login.php</code></td></tr>
+        <tr><td>Email</td><td><code>admin@nhakhoakimdung.com</code></td></tr>
+        <tr><td>Mật khẩu</td><td><code>AdminKimDung@2026!</code></td></tr>
+        <tr><td>Bảo mật</td><td>Bcrypt cost 12 · Rate limit 5 lần/15 phút · CSRF token</td></tr>
+      </table>
+    </div>
+
+    <h3>API Key (đăng bài tự động)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Trường</th><th>Giá trị</th></tr>
+        <tr><td>Raw key</td><td><code>kd_live_sec_7a8f9b2c3d4e5f6a1b2c3d4e5f6a7b8c</code></td></tr>
+        <tr><td>Header</td><td><code>Authorization: Bearer kd_live_sec_7a8f9b2c3d4e5f6a1b2c3d4e5f6a7b8c</code></td></tr>
+        <tr><td>Quản lý</td><td><code>http://localhost:8080/admin/api_keys.php</code></td></tr>
+      </table>
+    </div>
+
+    <div class="callout callout-gold">
+      <span>⚠️</span>
+      <span>Đặt lại mật khẩu admin bất kỳ lúc nào: sửa <code>scripts/set_admin_password.php</code> rồi chạy bằng PHP CLI.</span>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- PUBLIC -->
+  <section id="public">
+    <h2><span class="num">3</span>Kiểm thử trang công khai</h2>
+
+    <p>Các trang HTML gốc của designer <strong>không bị chạm</strong>. Backend inject bài viết tại runtime.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>URL</th><th>Mô tả</th><th>Kết quả mong đợi</th></tr>
+        <tr>
+          <td><code>/</code></td>
+          <td>Trang chủ</td>
+          <td><span class="badge badge-pass">200 OK</span> HTML tĩnh của designer</td>
+        </tr>
+        <tr>
+          <td><code>/website/tin-tuc.html</code></td>
+          <td>Danh sách bài viết</td>
+          <td><span class="badge badge-pass">200 OK</span> Có <code>&lt;article class="gf-news-item"&gt;</code></td>
+        </tr>
+        <tr>
+          <td><code>/tin-tuc</code></td>
+          <td>Clean URL danh sách</td>
+          <td><span class="badge badge-pass">200 OK</span> Cùng nội dung như trên</td>
+        </tr>
+        <tr>
+          <td><code>/tin-tuc/&lt;slug&gt;</code></td>
+          <td>Trang bài viết</td>
+          <td><span class="badge badge-pass">200 OK</span> Nội dung bài + sidebar đặt lịch</td>
+        </tr>
+        <tr>
+          <td><code>/tin-tuc/slug-khong-ton-tai</code></td>
+          <td>Slug không tồn tại</td>
+          <td><span class="badge badge-danger">404</span> Trang lỗi</td>
+        </tr>
+      </table>
+    </div>
+
+    <h3>Ví dụ slug để thử</h3>
+    <pre>http://localhost:8080/tin-tuc/cay-ghep-implant-toan-ham-all-on-4-giai-phap-cho-nguoi-mat-het-rang
+http://localhost:8080/tin-tuc/chinh-sach-nieng-rang-tra-gop-0-lai-suat-tai-nha-khoa-kim-dung</pre>
+  </section>
+
+  <hr>
+
+  <!-- API -->
+  <section id="api">
+    <h2><span class="num">4</span>Đăng bài qua REST API</h2>
+
+    <div class="endpoint">
+      <div class="endpoint-line">
+        <span class="method post">POST</span>
+        <span class="endpoint-url">/api/v1/posts</span>
+      </div>
+      Header: <code>Authorization: Bearer &lt;api_key&gt;</code><br>
+      Content-Type: <code>application/json</code>
+    </div>
+
+    <h3>Payload tối thiểu</h3>
+    <pre>{
+  "title":   "Implant All-on-4 — Giải pháp phục hình toàn hàm 2026",
+  "content": "&lt;p&gt;Nội dung bài viết có thể chứa &lt;strong&gt;HTML&lt;/strong&gt; an toàn.&lt;/p&gt;",
+  "status":  "published"
+}</pre>
+
+    <h3>Payload đầy đủ</h3>
+    <pre>{
+  "external_id":     "my-system-id-001",
+  "title":           "Tiêu đề bài viết",
+  "excerpt":         "Tóm tắt ngắn hiển thị trên danh sách.",
+  "content":         "&lt;h2&gt;Mục lớn&lt;/h2&gt;&lt;p&gt;Nội dung...&lt;/p&gt;",
+  "featured_image":  "https://example.com/anh-bai-viet.jpg",
+  "status":          "published"
+}</pre>
+
+    <h3>Chạy thử bằng cURL</h3>
+    <pre>curl -s -X POST http://localhost:8080/api/v1/posts \
+  -H "Authorization: Bearer kd_live_sec_7a8f9b2c3d4e5f6a1b2c3d4e5f6a7b8c" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Bài viết test từ cURL",
+    "content": "&lt;p&gt;Nội dung test.&lt;/p&gt;",
+    "status": "published"
+  }'</pre>
+
+    <h3>Response mong đợi</h3>
+    <div class="result-row">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--pass);margin-bottom:4px;">✅ Tạo mới (201)</div>
+        <pre>{"success":true,"data":{
+  "post_id": 119,
+  "action": "created",
+  "slug": "bai-viet-test-tu-curl",
+  "url": "/tin-tuc/bai-viet-test-tu-curl"
+}}</pre>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--warn);margin-bottom:4px;">🔄 Cập nhật idempotent (200)</div>
+        <pre>{"success":true,"data":{
+  "post_id": 119,
+  "action": "updated",
+  "slug": "bai-viet-test-tu-curl",
+  "url": "/tin-tuc/bai-viet-test-tu-curl"
+}}</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <span>💡</span>
+      <span><strong>Idempotent:</strong> gửi lại cùng <code>external_id</code> → cập nhật bài cũ (HTTP 200), không tạo bản trùng.</span>
+    </div>
+
+    <h3>Chèn hyperlink & định dạng trong content</h3>
+    <pre>"content": "&lt;p&gt;Tìm hiểu thêm về &lt;a href='/website/trong-rang-implant.html'&gt;&lt;strong&gt;cấy ghép Implant&lt;/strong&gt;&lt;/a&gt; tại Kim Dung.&lt;/p&gt;
+&lt;p&gt;Từ khóa &lt;strong&gt;bôi đậm&lt;/strong&gt; và &lt;em&gt;in nghiêng&lt;/em&gt; đều được hỗ trợ.&lt;/p&gt;"</pre>
+
+    <h3>Gửi 100 bài hàng loạt</h3>
+    <pre>node scripts/send_100_posts.mjs</pre>
+    <p>Kết quả kỳ vọng: 100/100 thành công trong ~1–2 giây (~11ms/bài).</p>
+
+    <h3>Các lỗi thường gặp</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>HTTP</th><th>Nguyên nhân</th><th>Xử lý</th></tr>
+        <tr><td>401</td><td>Thiếu hoặc sai API key</td><td>Kiểm tra header <code>Authorization: Bearer ...</code></td></tr>
+        <tr><td>422</td><td>Thiếu trường bắt buộc (<code>title</code>, <code>content</code>)</td><td>Bổ sung payload</td></tr>
+        <tr><td>500</td><td>Lỗi kết nối database</td><td>Kiểm tra <code>.env</code> và MariaDB đang chạy</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ADMIN -->
+  <section id="admin">
+    <h2><span class="num">5</span>Kiểm thử Admin Portal</h2>
+
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>URL</th><th>Chức năng</th><th>Test case</th></tr>
+        <tr>
+          <td><code>/admin/</code></td>
+          <td>Dashboard tổng quan</td>
+          <td>Hiển thị số liệu bookings, bài viết, dịch vụ</td>
+        </tr>
+        <tr>
+          <td><code>/admin/posts.php</code></td>
+          <td>Quản lý bài viết</td>
+          <td>Danh sách 20 bài/trang, sửa/xóa/thay trạng thái</td>
+        </tr>
+        <tr>
+          <td><code>/admin/posts.php?new=1</code></td>
+          <td>Viết bài mới</td>
+          <td>Form với toolbar B/I/Hyperlink/H2/H3/List/Callout box</td>
+        </tr>
+        <tr>
+          <td><code>/admin/bookings.php</code></td>
+          <td>Quản lý đặt lịch</td>
+          <td>Lọc theo ngày, dịch vụ, trạng thái; dời giờ</td>
+        </tr>
+        <tr>
+          <td><code>/admin/api_keys.php</code></td>
+          <td>Quản lý API keys</td>
+          <td>Tạo key mới, disable, xóa; xem lần dùng cuối</td>
+        </tr>
+        <tr>
+          <td><code>/admin/services.php</code></td>
+          <td>Quản lý dịch vụ</td>
+          <td>Thêm/sửa dịch vụ, thời lượng, giá</td>
+        </tr>
+        <tr>
+          <td><code>/admin/schedule.php</code></td>
+          <td>Lịch giờ làm việc</td>
+          <td>Cài giờ mở/đóng từng ngày trong tuần</td>
+        </tr>
+      </table>
+    </div>
+
+    <h3>Test tạo bài thủ công</h3>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Đăng nhập Admin</div><div class="step-desc">Vào <code>/admin/login.php</code>, nhập email + mật khẩu.</div></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Tạo bài mới</div><div class="step-desc">Click <strong>➕ Viết bài mới</strong>. Điền tiêu đề và nội dung. Bôi đen từ rồi thử nút <strong>B</strong>, <strong>🔗 Chèn Hyperlink</strong>, <strong>💡 Hộp lưu ý bác sĩ</strong>.</div></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Xuất bản & kiểm tra</div><div class="step-desc">Bấm <strong>Xuất bản bài viết</strong>. Mở <code>/website/tin-tuc.html</code> → bài vừa tạo xuất hiện đầu danh sách trang 1.</div></div></div>
+    </div>
+
+    <h3>Test bảo mật login</h3>
+    <pre># Thử đăng nhập sai 5 lần liên tiếp
+# Lần thứ 6 sẽ bị chặn: "Thử đăng nhập thất bại quá nhiều lần"
+# Tự mở khóa sau 15 phút</pre>
+  </section>
+
+  <hr>
+
+  <!-- PAGINATION -->
+  <section id="pagination">
+    <h2><span class="num">6</span>Kiểm thử phân trang</h2>
+
+    <h3>Trang công khai (12 bài/trang)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>URL</th><th>Kết quả mong đợi</th></tr>
+        <tr><td><code>/tin-tuc</code> hoặc <code>/tin-tuc?page=1</code></td><td>12 bài, trang 1/10, nút "Trang sau ›" active</td></tr>
+        <tr><td><code>/tin-tuc?page=2</code></td><td>Bài 13–24, trang 2/10</td></tr>
+        <tr><td><code>/tin-tuc?page=10</code></td><td>Bài 109–118, nút "‹ Trang trước" active, "Trang sau" mờ</td></tr>
+        <tr><td><code>/tin-tuc?page=999</code></td><td>Tự redirect về trang cuối cùng</td></tr>
+      </table>
+    </div>
+
+    <h3>Admin portal (20 bài/trang)</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>URL</th><th>Kết quả mong đợi</th></tr>
+        <tr><td><code>/admin/posts.php</code></td><td>20 dòng, trang 1/6, tổng 118 bài</td></tr>
+        <tr><td><code>/admin/posts.php?page=6</code></td><td>18 dòng (bài 101–118), trang cuối</td></tr>
+      </table>
+    </div>
+
+    <h3>Chạy script kiểm tra tự động</h3>
+    <pre>node scripts/test_pagination.mjs</pre>
+    <p>Script sẽ tự đăng nhập, duyệt qua trang 1/2/6 của admin và trang 1/2/10 của public, in kết quả xác nhận.</p>
+  </section>
+
+  <hr>
+
+  <!-- UNIT TESTS -->
+  <section id="unit">
+    <h2><span class="num">7</span>Unit Tests (PHP)</h2>
+
+    <pre>& "C:\Users\minhd\AppData\Local\Programs\php\php.exe" tests/run.php</pre>
+
+    <p>44 test cases, kết quả mong đợi:</p>
+    <pre>Test Results: 44 Passed, 0 Failed
+All tests passed successfully!</pre>
+
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Suite</th><th>Test cases</th><th>Bao gồm</th></tr>
+        <tr><td>ValidatorTest</td><td>15</td><td>Phone VN, ngày, giờ, integer, maxLength</td></tr>
+        <tr><td>SanitizerTest</td><td>8</td><td>XSS strip, slug tiếng Việt, event handler injection</td></tr>
+        <tr><td>RateLimiterTest</td><td>6</td><td>Giới hạn lần thử, phân biệt IP, hết hạn window</td></tr>
+        <tr><td>CsrfTest</td><td>5</td><td>Generate, verify, rotation, session miss</td></tr>
+        <tr><td>AvailabilityServiceLogicTest</td><td>10</td><td>Slot generation, conflict detection, ngày quá khứ</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- SECURITY -->
+  <section id="security">
+    <h2><span class="num">8</span>Kiểm thử bảo mật</h2>
+
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Tấn công</th><th>Test</th><th>Kết quả mong đợi</th></tr>
+        <tr>
+          <td>XSS qua API</td>
+          <td>Gửi <code>"content": "&lt;script&gt;alert(1)&lt;/script&gt;"</code></td>
+          <td>Tag <code>&lt;script&gt;</code> bị loại bỏ hoàn toàn</td>
+        </tr>
+        <tr>
+          <td>API key giả</td>
+          <td><code>Authorization: Bearer invalid_key</code></td>
+          <td>HTTP 401 Unauthorized</td>
+        </tr>
+        <tr>
+          <td>CSRF form admin</td>
+          <td>POST form không có <code>csrf_token</code></td>
+          <td>HTTP 403 / redirect về login</td>
+        </tr>
+        <tr>
+          <td>SQL injection</td>
+          <td>Slug: <code>'; DROP TABLE posts; --</code></td>
+          <td>Parameterized query — không có hiệu lực</td>
+        </tr>
+        <tr>
+          <td>Brute force login</td>
+          <td>Sai mật khẩu 5 lần</td>
+          <td>Khóa IP 15 phút</td>
+        </tr>
+        <tr>
+          <td>Truy cập backend trực tiếp</td>
+          <td><code>/backend/config/database.php</code></td>
+          <td>403 Forbidden (.htaccess chặn)</td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- SCRIPTS -->
+  <section id="scripts">
+    <h2><span class="num">9</span>Script tiện ích</h2>
+
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Script</th><th>Mô tả</th><th>Lệnh</th></tr>
+        <tr>
+          <td><code>send_100_posts.mjs</code></td>
+          <td>Gửi 100 bài nha khoa mẫu qua API</td>
+          <td><code>node scripts/send_100_posts.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>test_pagination.mjs</code></td>
+          <td>Kiểm tra phân trang public + admin</td>
+          <td><code>node scripts/test_pagination.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>test_upsert.mjs</code></td>
+          <td>Kiểm tra idempotent upsert</td>
+          <td><code>node scripts/test_upsert.mjs</code></td>
+        </tr>
+        <tr>
+          <td><code>count_posts.php</code></td>
+          <td>Đếm tổng bài trong DB</td>
+          <td><code>php scripts/count_posts.php</code></td>
+        </tr>
+        <tr>
+          <td><code>set_admin_password.php</code></td>
+          <td>Đặt lại mật khẩu admin (bcrypt cost 12)</td>
+          <td><code>php scripts/set_admin_password.php</code></td>
+        </tr>
+        <tr>
+          <td><code>ensure_test_key.php</code></td>
+          <td>Tạo API key test nếu chưa có</td>
+          <td><code>php scripts/ensure_test_key.php</code></td>
+        </tr>
+        <tr>
+          <td><code>verify_batch_100.mjs</code></td>
+          <td>Xác minh 100 bài đã đăng xuất hiện</td>
+          <td><code>node scripts/verify_batch_100.mjs</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="callout callout-gold">
+      <span>📌</span>
+      <span>Tất cả lệnh <code>php</code> trên Windows dùng đường dẫn đầy đủ: <code>C:\Users\minhd\AppData\Local\Programs\php\php.exe</code></span>
+    </div>
+  </section>
+</main>
+
+<script>
+  // Highlight active nav link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('nav a[href^="#"]');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => obs.observe(s));
+</script>
