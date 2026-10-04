@@ -1,0 +1,3 @@
+# Deny all access to internal storage
+Order allow,deny
+Deny from all
