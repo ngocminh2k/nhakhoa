@@ -1,0 +1,888 @@
+
+<title>Needlefish — Kế hoạch triển khai</title>
+<style>
+  /* Layout: single-column reading doc, sidebar TOC on wide screens */
+  :root {
+    --bg: #f8f7f4;
+    --bg2: #ffffff;
+    --border: #e4e1da;
+    --fg: #1a1916;
+    --fg2: #5a574f;
+    --accent: #2563c4;
+    --accent-bg: #eef3fd;
+    --done: #16a34a;
+    --done-bg: #f0fdf4;
+    --warn: #b45309;
+    --warn-bg: #fffbeb;
+    --err: #dc2626;
+    --err-bg: #fef2f2;
+    --tag-bg: #ededea;
+    --code-bg: #f0ede7;
+    --font-head: 'Instrument Serif', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111110;
+      --bg2: #1c1b19;
+      --border: #2e2c28;
+      --fg: #f0ede7;
+      --fg2: #9e9a91;
+      --accent: #5b93f5;
+      --accent-bg: #172040;
+      --done: #4ade80;
+      --done-bg: #052e16;
+      --warn: #fbbf24;
+      --warn-bg: #1c1000;
+      --err: #f87171;
+      --err-bg: #1c0505;
+      --tag-bg: #252320;
+      --code-bg: #1e1d1a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111110; --bg2: #1c1b19; --border: #2e2c28; --fg: #f0ede7;
+    --fg2: #9e9a91; --accent: #5b93f5; --accent-bg: #172040;
+    --done: #4ade80; --done-bg: #052e16; --warn: #fbbf24; --warn-bg: #1c1000;
+    --err: #f87171; --err-bg: #1c0505; --tag-bg: #252320; --code-bg: #1e1d1a;
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 0;
+    padding-inline: 20px;
+    padding-block: 0;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Page shell */
+  .page-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding-block: 40px 80px;
+  }
+
+  /* Header */
+  .doc-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .doc-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--fg2);
+    margin-bottom: 10px;
+  }
+  .doc-title {
+    font-family: var(--font-head);
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 400;
+    line-height: 1.15;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .doc-subtitle {
+    color: var(--fg2);
+    font-size: 15px;
+    margin: 0;
+  }
+
+  /* Meta pills */
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--tag-bg);
+    color: var(--fg2);
+    border: 1px solid var(--border);
+  }
+  .pill.accent { background: var(--accent-bg); color: var(--accent); border-color: transparent; }
+
+  /* Progress summary bar */
+  .progress-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 36px;
+  }
+  .progress-block h3 {
+    margin: 0 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--fg2);
+  }
+  .phase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .phase-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .phase-chip.done { background: var(--done-bg); border-color: var(--done); color: var(--done); }
+  .phase-chip.partial { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+  .phase-chip.todo { background: var(--bg); color: var(--fg2); }
+  .phase-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .done .dot { background: var(--done); }
+  .partial .dot { background: var(--warn); }
+  .todo .dot { background: var(--border); }
+
+  /* Hosting callout */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-bg);
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 28px;
+    font-size: 14px;
+  }
+  .callout strong { color: var(--accent); }
+
+  /* Section headings */
+  h2 {
+    font-family: var(--font-head);
+    font-size: 24px;
+    font-weight: 400;
+    margin: 48px 0 8px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-wrap: balance;
+  }
+  h2:first-of-type { margin-top: 0; }
+  h3 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--fg2);
+    margin: 28px 0 10px;
+  }
+
+  /* Phase blocks */
+  .phase {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .phase-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 16px 20px 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .phase-header:hover { background: var(--tag-bg); }
+  .phase-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    color: var(--fg2);
+    flex-shrink: 0;
+    min-width: 36px;
+  }
+  .phase-name {
+    font-weight: 600;
+    font-size: 15px;
+    flex: 1;
+  }
+  .phase-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 99px;
+    flex-shrink: 0;
+  }
+  .badge-done { background: var(--done-bg); color: var(--done); }
+  .badge-partial { background: var(--warn-bg); color: var(--warn); }
+  .badge-todo { background: var(--tag-bg); color: var(--fg2); }
+  .badge-critical { background: var(--err-bg); color: var(--err); }
+
+  .phase-body {
+    padding: 0 20px 18px;
+    border-top: 1px solid var(--border);
+  }
+  .phase-body.collapsed { display: none; }
+
+  .phase-toggle {
+    font-size: 13px;
+    color: var(--fg2);
+    margin-left: auto;
+    transition: transform .2s;
+  }
+  .phase.open .phase-toggle { transform: rotate(180deg); }
+
+  /* Task list */
+  .tasks {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .task {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .task-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .task-text { color: var(--fg); }
+  .task-note {
+    font-size: 12px;
+    color: var(--fg2);
+    margin-top: 2px;
+  }
+
+  /* Infra table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-top: 16px;
+  }
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--fg2);
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--tag-bg); }
+  td code, th code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .td-rec {
+    background: var(--accent-bg);
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Code block */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 12px 0;
+  }
+  code { font-family: var(--font-mono); font-size: 12.5px; }
+
+  /* Decision table */
+  .decision-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 13.5px;
+    margin-top: 14px;
+  }
+  .dg-label {
+    background: var(--tag-bg);
+    color: var(--fg2);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+  }
+  .dg-val {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .dg-label:last-of-type, .dg-val:last-child { border-bottom: none; }
+
+  /* Separator */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* Sticky prev/next nav */
+  .phase-nav {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .nav-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .nav-btn:hover { background: var(--tag-bg); }
+  .nav-btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .nav-btn.primary:hover { opacity: .9; }
+
+  /* Warning notice */
+  .notice {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    margin: 14px 0;
+  }
+  .notice.warn { background: var(--warn-bg); }
+  .notice.info { background: var(--accent-bg); }
+  .notice-icon { flex-shrink: 0; font-size: 16px; }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .phase-grid { grid-template-columns: 1fr 1fr; }
+    .decision-grid { grid-template-columns: 1fr; }
+    .dg-label { border-bottom: none; }
+    h2 { font-size: 22px; }
+  }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <header class="doc-header">
+    <p class="doc-eyebrow">Nhakhoa Kim Dung · Needlefish</p>
+    <h1 class="doc-title">Kế hoạch triển khai hệ thống</h1>
+    <p class="doc-subtitle">Modular monolith · Node.js + Fastify · SQLite · Mắt Bão Cloud Hosting</p>
+    <div class="meta-row">
+      <span class="pill">10 phases</span>
+      <span class="pill">Public site: giữ nguyên</span>
+      <span class="pill accent">Cập nhật 10/2026</span>
+    </div>
+  </header>
+
+  <!-- Progress overview -->
+  <div class="progress-block">
+    <h3>Tổng tiến độ</h3>
+    <div class="phase-grid">
+      <div class="phase-chip partial"><span class="dot"></span>P1 Foundation</div>
+      <div class="phase-chip partial"><span class="dot"></span>P2 Public site</div>
+      <div class="phase-chip partial"><span class="dot"></span>P3 Blog</div>
+      <div class="phase-chip todo"><span class="dot"></span>P4 Post API</div>
+      <div class="phase-chip todo"><span class="dot"></span>P5 Booking</div>
+      <div class="phase-chip todo"><span class="dot"></span>P6 Google Sheets</div>
+      <div class="phase-chip todo"><span class="dot"></span>P7 Analytics</div>
+      <div class="phase-chip todo"><span class="dot"></span>P8 Admin</div>
+      <div class="phase-chip todo"><span class="dot"></span>P9 Hardening</div>
+      <div class="phase-chip todo"><span class="dot"></span>P10 QA</div>
+    </div>
+  </div>
+
+  <!-- Hosting -->
+  <h2>Hạ tầng — Mắt Bão Cloud Hosting</h2>
+
+  <div class="notice info">
+    <span class="notice-icon">ℹ️</span>
+    <div>Dự án là Node.js app — <strong>cần plan hỗ trợ Node.js custom / SSH</strong>. Các plan Mắt Bão dùng LiteSpeed + Plesk thường chạy PHP. Cần xác nhận Mắt Bão có cho phép custom Node.js process (PM2) không trước khi mua.</div>
+  </div>
+
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr>
+        <th>Plan</th>
+        <th>Giá/tháng</th>
+        <th>CPU</th>
+        <th>RAM</th>
+        <th>SSD</th>
+        <th>Bandwidth</th>
+        <th>Phù hợp</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Cơ Bản</td>
+        <td>49.000đ</td>
+        <td>1.5 core</td>
+        <td>1 GB</td>
+        <td>2 GB</td>
+        <td>20 GB</td>
+        <td>❌ SSD quá nhỏ</td>
+      </tr>
+      <tr>
+        <td>Tiết Kiệm</td>
+        <td>79.000đ</td>
+        <td>1.5 core</td>
+        <td>1.5 GB</td>
+        <td>4 GB</td>
+        <td>Unlimited</td>
+        <td>⚠️ Đủ RAM tối thiểu</td>
+      </tr>
+      <tr>
+        <td>Thiết Yếu</td>
+        <td>99.000đ</td>
+        <td>2 core</td>
+        <td>2 GB</td>
+        <td>6 GB</td>
+        <td>Unlimited</td>
+        <td>⚠️ Chấp nhận được</td>
+      </tr>
+      <tr class="td-rec">
+        <td><strong>Cửa Hàng ★</strong></td>
+        <td><strong>149.000đ</strong></td>
+        <td>2 core</td>
+        <td>4 GB</td>
+        <td>10 GB</td>
+        <td>Unlimited</td>
+        <td>✅ <strong>Khuyến nghị</strong></td>
+      </tr>
+      <tr>
+        <td>Doanh Nghiệp</td>
+        <td>269.000đ</td>
+        <td>4 core</td>
+        <td>4 GB</td>
+        <td>15 GB</td>
+        <td>Unlimited</td>
+        <td>✅ Dự phòng scale</td>
+      </tr>
+      <tr>
+        <td>Ecom</td>
+        <td>399.000đ</td>
+        <td>4 core</td>
+        <td>6 GB</td>
+        <td>20 GB</td>
+        <td>Unlimited</td>
+        <td>✅ Overkill giai đoạn 1</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <strong>Nếu Mắt Bão không cho chạy Node.js custom:</strong> dùng VPS Vultr/DigitalOcean 2 vCPU / 2GB RAM ~$12/tháng (~290.000đ) + Caddy. Linh hoạt hơn nhiều và rẻ hơn plan Doanh Nghiệp.
+  </div>
+
+  <hr>
+
+  <!-- Stack decisions -->
+  <h2>Quyết định kỹ thuật</h2>
+  <div class="decision-grid">
+    <div class="dg-label">Architecture</div><div class="dg-val">Modular Monolith — 1 app, 1 DB, 1 deploy</div>
+    <div class="dg-label">Backend</div><div class="dg-val">Node.js 22 LTS + TypeScript 5</div>
+    <div class="dg-label">Framework</div><div class="dg-val">Fastify 5</div>
+    <div class="dg-label">ORM / DB</div><div class="dg-val">Drizzle ORM + better-sqlite3 → SQLite</div>
+    <div class="dg-label">Reverse proxy</div><div class="dg-val">Caddy 2 (HTTPS tự động)</div>
+    <div class="dg-label">Deploy</div><div class="dg-val">Docker + docker-compose</div>
+    <div class="dg-label">Process manager</div><div class="dg-val">PM2 (nếu không dùng Docker)</div>
+    <div class="dg-label">Public site</div><div class="dg-val">Giữ nguyên static HTML — serve bởi Caddy hoặc Fastify static</div>
+    <div class="dg-label">Validation</div><div class="dg-val">Zod + Fastify schema</div>
+    <div class="dg-label">Auth / Password</div><div class="dg-val">Argon2 + HttpOnly cookie session</div>
+    <div class="dg-label">Google Sheets</div><div class="dg-val">googleapis SDK + Service Account</div>
+    <div class="dg-label">Queue / retry</div><div class="dg-val">DB-based retry job (không cần Redis)</div>
+  </div>
+
+  <hr>
+
+  <!-- Phases -->
+  <h2>Các phase triển khai</h2>
+
+  <!-- P1 -->
+  <div class="phase" id="p1">
+    <div class="phase-header" onclick="toggle('p1')">
+      <span class="phase-num">P1</span>
+      <span class="phase-name">Foundation — Infra & Backend scaffold</span>
+      <span class="phase-badge badge-critical">Bắt buộc trước</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <p style="font-size:13.5px;color:var(--fg2);margin:14px 0 0">Toàn bộ hệ thống phụ thuộc vào phase này. Hiện tại chưa có gì — cần build từ đầu.</p>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Init Node.js project: <code>npm init</code>, cài TypeScript, tsx, tsconfig</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Cài Fastify 5 + plugins: <code>@fastify/cookie</code>, <code>@fastify/static</code>, <code>@fastify/rate-limit</code>, <code>@fastify/helmet</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Setup Drizzle ORM + better-sqlite3 — tạo <code>src/db/schema.ts</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Drizzle migrations — init 10 tables: admins, services, business_hours, schedule_blocks, posts, bookings, sessions, page_views, daily_analytics, api_keys</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Module structure: <code>src/modules/</code> với posts, bookings, services, availability, analytics, admin, auth</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Config + logger (<code>pino</code>) + shared error handler</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Endpoint <code>GET /health</code> — trả <code>{"status":"ok"}</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Serve static HTML website qua <code>@fastify/static</code> → route <code>/</code> đến thư mục <code>website/</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Docker: <code>Dockerfile</code> + <code>docker-compose.yml</code> (app + caddy)</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Caddyfile: HTTPS tự động, reverse proxy đến Node app port 3000</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">SQLite volume mount ra ngoài container: <code>/data/app.db</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Test: domain online, HTTPS hoạt động, <code>/health</code> trả 200, static pages load được</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P2 -->
+  <div class="phase" id="p2">
+    <div class="phase-header" onclick="toggle('p2')">
+      <span class="phase-num">P2</span>
+      <span class="phase-name">Public site — Giữ nguyên, chỉ integrate</span>
+      <span class="phase-badge badge-partial">Partial ✓</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <p style="font-size:13.5px;color:var(--fg2);margin:14px 0 0">80 file HTML tĩnh đã có. Không đổi nội dung/design. Chỉ cần đảm bảo tích hợp vào Node.js app.</p>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">✅</span><div><div class="task-text">Landing page, service pages, blog pages, bác sĩ, giới thiệu — <strong>đã có</strong></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Fastify serve <code>website/</code> static — test tất cả 80 pages load đúng đường dẫn</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Update <code>website/dat-lich.html</code>: form gọi <code>POST /api/v1/bookings</code> thay vì static</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Thêm booking success page: <code>website/dat-lich-thanh-cong.html</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Kiểm tra SEO: robots.txt, sitemap.xml serve đúng</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P3 -->
+  <div class="phase" id="p3">
+    <div class="phase-header" onclick="toggle('p3')">
+      <span class="phase-num">P3</span>
+      <span class="phase-name">Blog — Chuyển từ static sang dynamic</span>
+      <span class="phase-badge badge-partial">Partial ✓</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <p style="font-size:13.5px;color:var(--fg2);margin:14px 0 0">HTML tĩnh cho blog đã có (60+ bài), nhưng chưa có DB hay dynamic routing.</p>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">✅</span><div><div class="task-text">Blog HTML pages tĩnh — đã có, giữ nguyên cho giai đoạn đầu</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>posts</code>: id, title, slug, excerpt, content, featured_image, status, source, external_id, created_at, published_at</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>PostRepository</code> + <code>PostService</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Dynamic route <code>GET /blog</code> — list bài published, render HTML</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Dynamic route <code>GET /blog/:slug</code> — render bài theo slug từ DB</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">SEO: title, meta description, OpenGraph, canonical, Article schema JSON-LD</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Import bài cũ từ static HTML vào DB (script một lần)</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P4 -->
+  <div class="phase" id="p4">
+    <div class="phase-header" onclick="toggle('p4')">
+      <span class="phase-num">P4</span>
+      <span class="phase-name">External Post API</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>api_keys</code>: id, name, key_hash, active, created_at, last_used_at</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Auth middleware: <code>Authorization: Bearer &lt;key&gt;</code> — hash + compare</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>POST /api/v1/posts</code>: nhận title, slug, excerpt, content, featured_image, status, external_id</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Idempotency: unique index trên <code>external_id</code> — nếu trùng thì update, không tạo mới</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Zod schema validation + sanitize HTML content (chống XSS)</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Response: <code>{"success":true,"post_id":"...","url":"..."}</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Rate limit: reasonable limit per API key</div></div></li>
+      </ul>
+      <pre>POST /api/v1/posts
+Authorization: Bearer &lt;API_KEY&gt;
+
+{
+  "title": "Tại sao cần lấy cao răng?",
+  "slug": "tai-sao-can-lay-cao-rang",
+  "excerpt": "Mô tả ngắn",
+  "content": "&lt;p&gt;Nội dung&lt;/p&gt;",
+  "status": "published",
+  "external_id": "auto-92821"
+}</pre>
+    </div>
+  </div>
+
+  <!-- P5 -->
+  <div class="phase" id="p5">
+    <div class="phase-header" onclick="toggle('p5')">
+      <span class="phase-num">P5</span>
+      <span class="phase-name">Booking — Đặt lịch end-to-end</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <p style="font-size:13.5px;color:var(--fg2);margin:14px 0 0">Form tĩnh <code>dat-lich.html</code> đã có UI. Cần toàn bộ backend logic.</p>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>services</code>: id, name, slug, description, duration_minutes, price, active</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>business_hours</code>: weekday, start_time, end_time, active</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>schedule_blocks</code>: start_at, end_at, reason (ngày nghỉ, block slot)</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>bookings</code>: id, booking_code, customer_name, phone, email, service_id, booking_date, start_time, end_time, status, utm_*, sheet_sync_status, ...</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>AvailabilityService</code>: tính slot trống theo service_id + date</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>GET /api/v1/availability?service_id=&amp;date=</code> → trả danh sách giờ trống</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>GET /api/v1/services</code> → danh sách services active</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>POST /api/v1/bookings</code> — validate, check slot, SQLite transaction, recheck slot, insert</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Booking code generator: <code>BK-YYYYMMDD-XXXX</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Double-booking prevention: DB constraint + transaction recheck</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Anti-spam: honeypot field, min submit time, rate limit 10 req/IP/hour</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Update <code>dat-lich.html</code>: form gọi API, hiển thị slot động, success state</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P6 -->
+  <div class="phase" id="p6">
+    <div class="phase-header" onclick="toggle('p6')">
+      <span class="phase-num">P6</span>
+      <span class="phase-name">Google Sheets Sync</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Tạo Google Service Account + cấp quyền Sheets editor</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Cài <code>googleapis</code> SDK</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>GoogleSheetsService.appendRow(booking)</code>: Booking Code, Created At, Customer, Phone, Email, Service, Date, Time, Status, Source, Medium, Campaign, Landing Page</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Gọi sau <code>BookingService.create()</code> — không block booking nếu lỗi</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Nếu lỗi: set <code>sheet_sync_status = 'failed'</code>, không rollback booking</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Retry job <code>jobs/retry-sheet-sync.ts</code>: chạy mỗi 5 phút, query <code>sheet_sync_status = 'failed'</code>, retry</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Admin có thể trigger retry thủ công từ booking detail</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P7 -->
+  <div class="phase" id="p7">
+    <div class="phase-header" onclick="toggle('p7')">
+      <span class="phase-num">P7</span>
+      <span class="phase-name">Analytics — First-party tracking</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>sessions</code>: session_id, first_page, referrer, source, medium, campaign, utm_*, created_at, last_seen_at</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>page_views</code>: session_id, path, referrer, created_at</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>daily_analytics</code>: date, path, source, medium, campaign, sessions, page_views, bookings</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Script nhỏ inject vào static pages: tạo session UUID cookie (first-party), capture UTM từ URL, gọi <code>POST /api/track/session</code> + <code>POST /api/track/pageview</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Referrer classification: google, facebook, instagram, tiktok, direct, other</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Booking copy attribution từ session: utm_source, utm_medium, utm_campaign, landing_page</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Job <code>jobs/aggregate-analytics.ts</code>: daily aggregation, cleanup raw sau 90 ngày</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P8 -->
+  <div class="phase" id="p8">
+    <div class="phase-header" onclick="toggle('p8')">
+      <span class="phase-num">P8</span>
+      <span class="phase-name">Admin — Dashboard & Management</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Table <code>admins</code>: id, email, password_hash (Argon2), created_at</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Auth: <code>POST /api/admin/login</code> — rate limit 5 failed/15 phút, set HttpOnly+Secure+SameSite cookie</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Auth middleware: bảo vệ tất cả <code>/admin/*</code> và <code>/api/admin/*</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Admin pages: <code>/admin/dashboard</code>, <code>/admin/bookings</code>, <code>/admin/posts</code>, <code>/admin/services</code>, <code>/admin/analytics</code>, <code>/admin/settings</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Dashboard: visitors/page views/bookings/conversion hôm nay + 7 ngày + 30 ngày</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Bookings: view, search, filter (date/service/status/source), edit status, retry sheet sync</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Posts: list, preview, edit, publish/unpublish, archive, delete</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Services: create, edit, enable/disable, update price/duration</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Analytics: top sources, top campaigns, top landing pages, top blog posts</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Settings: quản lý API keys, business hours, schedule blocks</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P9 -->
+  <div class="phase" id="p9">
+    <div class="phase-header" onclick="toggle('p9')">
+      <span class="phase-num">P9</span>
+      <span class="phase-name">Hardening — Security & Operations</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>@fastify/helmet</code>: security headers (CSP, HSTS, X-Frame-Options)</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">CSRF: CSRF token cho admin mutation, hoặc strict SameSite session</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Rate limit: booking 10/IP/hour, post API reasonable limit, admin login 5 fail/15min</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">HTML sanitization: <code>sanitize-html</code> hoặc DOMPurify server-side cho blog content</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Không log: password, API token, full cookie, Google credentials</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Backup: job <code>jobs/backup-db.ts</code> chạy 01:00 hàng ngày, retention 7 daily + 4 weekly + 3 monthly</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Offsite backup: copy ra S3-compatible / Google Drive</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Docker auto-restart: <code>restart: always</code></div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Health check endpoint: check DB + disk</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text">Error tracking: Sentry free tier hoặc simple file logging</div></div></li>
+        <li class="task"><span class="task-icon">⬜</span><div><div class="task-text"><code>.env</code> validation: check required secrets at startup, fail fast</div></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- P10 -->
+  <div class="phase" id="p10">
+    <div class="phase-header" onclick="toggle('p10')">
+      <span class="phase-num">P10</span>
+      <span class="phase-name">QA — Full test & acceptance</span>
+      <span class="phase-badge badge-todo">Chưa làm</span>
+      <span class="phase-toggle">▾</span>
+    </div>
+    <div class="phase-body collapsed">
+      <h3>Booking tests</h3>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Slot available → booking thành công</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Slot unavailable → trả lỗi SLOT_UNAVAILABLE</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">2 request cùng slot cùng lúc → chỉ 1 thành công</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Invalid email/phone/date → validation error</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Inactive service → error</div></li>
+      </ul>
+      <h3>Google Sheet tests</h3>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Sync thành công → sheet_sync_status = synced</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Google API timeout → booking vẫn confirmed, sheet_sync_status = failed</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Retry job → sync lại failed bookings</div></li>
+      </ul>
+      <h3>Post API tests</h3>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">New post → tạo thành công</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Duplicate external_id → idempotent, không tạo mới</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Invalid token → 401</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">XSS trong content → sanitized</div></li>
+      </ul>
+      <h3>Analytics tests</h3>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Direct traffic → source = direct</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">UTM params → lưu đúng vào session + booking</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Multi-page session → page views count đúng</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Booking attribution → copy UTM từ session</div></li>
+      </ul>
+      <h3>Acceptance</h3>
+      <ul class="tasks">
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Test mobile + desktop toàn bộ public pages</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">HTTPS hoạt động, redirect www → non-www (hoặc ngược lại)</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Backup restore drill: restore từ backup, verify data nguyên vẹn</div></li>
+        <li class="task"><span class="task-icon">⬜</span><div class="task-text">Admin auth: login, session expire, logout</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Source structure -->
+  <h2>Cấu trúc source code mục tiêu</h2>
+  <pre>needlefish/
+├── website/              ← static HTML giữ nguyên
+├── src/
+│   ├── server.ts
+│   ├── config/
+│   ├── db/
+│   │   ├── schema.ts     ← 10 tables
+│   │   └── migrations/
+│   ├── modules/
+│   │   ├── posts/        ← post.service.ts, .repository.ts, .schema.ts, .routes.ts
+│   │   ├── bookings/     ← booking.service.ts, ...
+│   │   ├── services/     ← service.service.ts, ...
+│   │   ├── availability/ ← availability.service.ts, .routes.ts
+│   │   ├── analytics/    ← analytics.service.ts, .repository.ts, .routes.ts
+│   │   ├── admin/        ← admin.service.ts, .routes.ts
+│   │   └── auth/         ← auth.service.ts, auth.middleware.ts
+│   ├── integrations/
+│   │   └── google-sheets/← google-sheets.service.ts
+│   ├── jobs/
+│   │   ├── retry-sheet-sync.ts
+│   │   ├── aggregate-analytics.ts
+│   │   └── backup-db.ts
+│   └── shared/
+│       ├── logger.ts
+│       ├── errors.ts
+│       └── validation.ts
+├── docker-compose.yml
+├── Dockerfile
+├── Caddyfile
+└── .env</pre>
+
+  <hr>
+
+  <!-- API summary -->
+  <h2>REST API endpoints</h2>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Phase</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET</code></td><td><code>/health</code></td><td>—</td><td>P1</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/services</code></td><td>—</td><td>P5</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/availability</code></td><td>—</td><td>P5</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/v1/bookings</code></td><td>—</td><td>P5</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/v1/posts</code></td><td>Bearer API Key</td><td>P4</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/track/session</code></td><td>—</td><td>P7</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/track/pageview</code></td><td>—</td><td>P7</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/admin/login</code></td><td>—</td><td>P8</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/admin/logout</code></td><td>Session</td><td>P8</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/admin/dashboard</code></td><td>Session</td><td>P8</td></tr>
+      <tr><td><code>GET/PUT</code></td><td><code>/api/admin/bookings[/:id]</code></td><td>Session</td><td>P8</td></tr>
+      <tr><td><code>GET/POST/PUT/DELETE</code></td><td><code>/api/admin/posts[/:id]</code></td><td>Session</td><td>P8</td></tr>
+      <tr><td><code>GET/POST/PUT</code></td><td><code>/api/admin/services[/:id]</code></td><td>Session</td><td>P8</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/admin/analytics</code></td><td>Session</td><td>P8</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+</div>
+
+<script>
+  function toggle(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+    el.querySelector('.phase-body').classList.toggle('collapsed');
+  }
+  // Auto-open P1 on load
+  toggle('p1');
+</script>
