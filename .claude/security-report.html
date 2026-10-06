@@ -1,0 +1,670 @@
+<!-- Nha Khoa Kim Dung — Security Report -->
+<title>Báo Cáo Bảo Mật</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+
+<style>
+/* ── Layout: single-column report, sticky header ── */
+:root {
+  --bg: #f7f7f5;
+  --bg2: #ffffff;
+  --fg: #1a1a1a;
+  --fg2: #555550;
+  --border: #e2e2de;
+  --critical: #c8102e;
+  --critical-bg: #fff0f2;
+  --critical-border: #f5c0c8;
+  --high: #c25e00;
+  --high-bg: #fff6ed;
+  --high-border: #f5d9b2;
+  --medium: #8a6e00;
+  --medium-bg: #fffaed;
+  --medium-border: #ede0a0;
+  --low: #2e6e3e;
+  --low-bg: #f0faf3;
+  --low-border: #b8dfc4;
+  --info: #1a5fa0;
+  --info-bg: #f0f6ff;
+  --info-border: #b8d4f5;
+  --code-bg: #1c1c1a;
+  --code-fg: #e8e6e0;
+  --code-accent: #7dd3a8;
+  --code-key: #f0a060;
+  --accent: #c8102e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141412;
+    --bg2: #1e1e1b;
+    --fg: #e8e6e0;
+    --fg2: #999994;
+    --border: #2e2e2a;
+    --critical-bg: #2a0a0e;
+    --critical-border: #5a1a22;
+    --high-bg: #261500;
+    --high-border: #5a3000;
+    --medium-bg: #201a00;
+    --medium-border: #4a3e00;
+    --low-bg: #0a1e10;
+    --low-border: #1e4a2a;
+    --info-bg: #0a1626;
+    --info-border: #1a3a5e;
+    --code-bg: #0e0e0c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141412;
+  --bg2: #1e1e1b;
+  --fg: #e8e6e0;
+  --fg2: #999994;
+  --border: #2e2e2a;
+  --critical-bg: #2a0a0e;
+  --critical-border: #5a1a22;
+  --high-bg: #261500;
+  --high-border: #5a3000;
+  --medium-bg: #201a00;
+  --medium-border: #4a3e00;
+  --low-bg: #0a1e10;
+  --low-border: #1e4a2a;
+  --info-bg: #0a1626;
+  --info-border: #1a3a5e;
+  --code-bg: #0e0e0c;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding-inline: 20px;
+  padding-block: 24px 48px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 900px;
+  margin-inline: auto;
+}
+
+/* ── Header ── */
+.report-header {
+  border-bottom: 2px solid var(--critical);
+  padding-bottom: 20px;
+  margin-bottom: 32px;
+}
+.report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--critical);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.report-badge::before {
+  content: '';
+  display: block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--critical);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--fg);
+  text-wrap: balance;
+  line-height: 1.2;
+}
+.report-meta {
+  font-size: 13px;
+  color: var(--fg2);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Summary strip ── */
+.summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+.sev-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.sev-pill.critical { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical-border); }
+.sev-pill.high     { background: var(--high-bg); color: var(--high); border: 1px solid var(--high-border); }
+.sev-pill.medium   { background: var(--medium-bg); color: var(--medium); border: 1px solid var(--medium-border); }
+.sev-pill.low      { background: var(--low-bg); color: var(--low); border: 1px solid var(--low-border); }
+.sev-pill.info     { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
+.sev-count { font-size: 20px; font-weight: 700; }
+
+/* ── Verdict box ── */
+.verdict {
+  background: var(--critical-bg);
+  border: 2px solid var(--critical);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 36px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.verdict-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+.verdict-text { flex: 1; min-width: 0; }
+.verdict-text strong { display: block; font-size: 15px; color: var(--critical); margin-bottom: 4px; }
+.verdict-text p { margin: 0; font-size: 14px; color: var(--fg); }
+
+/* ── Section title ── */
+h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--fg2);
+  font-family: 'IBM Plex Mono', monospace;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Finding card ── */
+.finding {
+  border-radius: 6px;
+  border-left: 4px solid;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.finding.critical { border-color: var(--critical); background: var(--critical-bg); }
+.finding.high     { border-color: var(--high);     background: var(--high-bg); }
+.finding.medium   { border-color: var(--medium);   background: var(--medium-bg); }
+.finding.low      { border-color: var(--low);       background: var(--low-bg); }
+.finding.info     { border-color: var(--info);      background: var(--info-bg); }
+
+.finding-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.finding-header:hover { filter: brightness(0.97); }
+
+.sev-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.critical .sev-tag { background: var(--critical); color: #fff; }
+.high     .sev-tag { background: var(--high);     color: #fff; }
+.medium   .sev-tag { background: var(--medium);   color: #fff; }
+.low      .sev-tag { background: var(--low);       color: #fff; }
+.info     .sev-tag { background: var(--info);      color: #fff; }
+
+.finding-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--fg);
+}
+.finding-toggle {
+  font-size: 16px;
+  color: var(--fg2);
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+.finding.open .finding-toggle { transform: rotate(180deg); }
+
+.finding-body {
+  display: none;
+  padding: 0 16px 16px 16px;
+  font-size: 13.5px;
+}
+.finding.open .finding-body { display: block; }
+.finding-body p { margin: 0 0 10px; color: var(--fg); }
+.finding-body p:last-child { margin-bottom: 0; }
+.finding-body .label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fg2);
+  margin-bottom: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Code block ── */
+pre {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  border-radius: 5px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  margin: 8px 0 0;
+}
+.c-comment { color: #666660; }
+.c-key { color: var(--code-key); }
+.c-val { color: var(--code-accent); }
+.c-del { color: #ff6b6b; text-decoration: line-through; opacity: .8; }
+.c-add { color: #7dd3a8; }
+.c-str { color: #c9a7ff; }
+
+/* ── Top 3 urgent ── */
+.urgent-list { list-style: none; padding: 0; margin: 0 0 36px; counter-reset: urgent; }
+.urgent-list li {
+  counter-increment: urgent;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.urgent-list li:last-child { border-bottom: none; }
+.urgent-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--critical);
+  flex-shrink: 0;
+  min-width: 32px;
+  line-height: 1;
+  margin-top: 2px;
+}
+.urgent-num::before { content: counter(urgent, decimal-leading-zero); }
+.urgent-content h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.urgent-content p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg2);
+}
+
+/* ── Passing checks ── */
+.pass-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 36px;
+}
+.pass-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  background: var(--low-bg);
+  border: 1px solid var(--low-border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: var(--low);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.pass-item::before { content: '✓'; font-weight: 700; }
+
+section { margin-bottom: 36px; }
+</style>
+
+<header class="report-header">
+  <div class="report-badge">Security Assessment — 10 Sub-agents</div>
+  <h1>Báo Cáo Bảo Mật<br>Nha Khoa Kim Dung</h1>
+  <div class="report-meta">
+    Target: http://127.0.0.1:8080 · Stack: PHP 8.2 / Apache 2.4.68 / MariaDB 11 · 2026-10-06
+  </div>
+</header>
+
+<!-- Summary counts -->
+<div class="summary-strip">
+  <div class="sev-pill critical"><span class="sev-count">3</span> CRITICAL</div>
+  <div class="sev-pill high"><span class="sev-count">2</span> HIGH</div>
+  <div class="sev-pill medium"><span class="sev-count">3</span> MEDIUM</div>
+  <div class="sev-pill low"><span class="sev-count">2</span> LOW</div>
+  <div class="sev-pill info"><span class="sev-count">2</span> INFO</div>
+</div>
+
+<!-- Overall verdict -->
+<div class="verdict">
+  <div class="verdict-icon">🚫</div>
+  <div class="verdict-text">
+    <strong>CHƯA SẴN SÀNG DEPLOY PRODUCTION</strong>
+    <p>Hệ thống có 3 lỗ hổng CRITICAL cần vá ngay trước khi lên Matbao. Hai file nhạy cảm (<code>docker-compose.yml</code> và <code>.env.example</code>) đang public, lộ credentials DB và API key. Toàn bộ CORS mở wildcard. Đây là blocker cứng.</p>
+  </div>
+</div>
+
+<!-- Top 3 urgent -->
+<section>
+  <h2>Top 3 Việc Phải Fix Ngay</h2>
+  <ol class="urgent-list">
+    <li>
+      <div class="urgent-num"></div>
+      <div class="urgent-content">
+        <h3>Block docker-compose.yml + .env.example qua Apache</h3>
+        <p>Hai file này public hoàn toàn — lộ DB password, API key, cấu trúc stack. Fix trong <code>.htaccess</code>, không cần đụng PHP. Mất &lt;2 phút.</p>
+      </div>
+    </li>
+    <li>
+      <div class="urgent-num"></div>
+      <div class="urgent-content">
+        <h3>Đổi CORS từ wildcard <code>*</code> thành domain cụ thể</h3>
+        <p>Sửa một dòng trong <code>backend/core/Response.php</code>. Kết hợp với API key bị lộ, CORS wildcard cho phép bất kỳ site nào gọi API.</p>
+      </div>
+    </li>
+    <li>
+      <div class="urgent-num"></div>
+      <div class="urgent-content">
+        <h3>Thêm CSP + HSTS + ẩn Server header</h3>
+        <p>Thêm vào <code>.htaccess</code>. HSTS bắt buộc HTTPS, CSP chặn XSS, ẩn Server header hạn chế CVE targeting.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- Findings: CRITICAL -->
+<section>
+  <h2>Critical — 3 Findings</h2>
+
+  <div class="finding critical open">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">CRITICAL</span>
+      <span class="finding-title">docker-compose.yml public — lộ toàn bộ credentials DB + API key</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>GET /docker-compose.yml trả về HTTP 200. File chứa root password MariaDB (<code>root</code>), user password (<code>nhakhoa_pass</code>), AUTOMATION_API_KEY (<code>kd_dev_test_key_abc123</code>), và DB port 3306 mapped ra host. Attacker kết nối thẳng vào MariaDB.</p>
+      <div class="label">File cần sửa: <code>.htaccess</code></div>
+      <pre><span class="c-del"># Dòng hiện tại — THIẾU docker-compose và .example</span>
+&lt;FilesMatch "(^\\.env|\\.git|\\.sql|\\.log|\\.lock|composer\\.(json|lock)|package(-lock)?\\.json|\\.md|google_sheets\\.json)$"&gt;
+    Order allow,deny
+    Deny from all
+&lt;/FilesMatch&gt;
+
+<span class="c-add"># Thay bằng — thêm docker-compose.yml, .example, .yml, .sh, .bak, .xml</span>
+&lt;FilesMatch "(^\\.env|docker-compose\\.ya?ml|\\.git|\\.sql|\\.log|\\.lock|composer\\.(json|lock)|package(-lock)?\\.json|\\.md|google_sheets\\.json|\\.example|\\.bak|\\.sh|\\.xml)$"&gt;
+    Order allow,deny
+    Deny from all
+&lt;/FilesMatch&gt;</pre>
+    </div>
+  </div>
+
+  <div class="finding critical open">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">CRITICAL</span>
+      <span class="finding-title">.env.example public — lộ AUTOMATION_API_KEY production</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>/.env.example trả về HTTP 200 và chứa <code>AUTOMATION_API_KEY=kd_live_sec_7a8f9b2c3d4e5f6a1b2c3d4e5f6a7b8c</code>. Pattern <code>^\\.env</code> trong FilesMatch chỉ match đúng <code>.env</code> — không match <code>.env.example</code>. Fix chung với finding #1 ở trên (thêm <code>|\\.example</code> vào FilesMatch).</p>
+      <div class="label">Hành động bổ sung</div>
+      <p>Sau khi block file, <strong>rotate API key</strong> ngay — key đã bị public nên coi như compromised. Tạo key mới trong DB admin, cập nhật <code>.env</code> thực trên server.</p>
+    </div>
+  </div>
+
+  <div class="finding critical open">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">CRITICAL</span>
+      <span class="finding-title">CORS wildcard Access-Control-Allow-Origin: * trên toàn bộ API</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>Mọi origin kể cả <code>https://evil.com</code> được phép gọi API. Kết hợp với API key đã lộ, bất kỳ website độc hại nào cũng tạo được booking.</p>
+      <div class="label">File cần sửa: <code>backend/core/Response.php</code></div>
+      <pre><span class="c-del">// Dòng 13 hiện tại</span>
+<span class="c-del">header('Access-Control-Allow-Origin: *');</span>
+
+<span class="c-add">// Thay bằng — whitelist domain thực của clinic</span>
+$allowed = [
+    'https://nhakhoakimdung.com',
+    'https://www.nhakhoakimdung.com',
+    <span class="c-comment">// Thêm subdomain nếu cần</span>
+];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowed, true)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header('Vary: Origin');
+} elseif ($origin === '') {
+    <span class="c-comment">// Same-origin request — không cần CORS header</span>
+}
+<span class="c-comment">// Không match: không set header → browser block cross-origin</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- Findings: HIGH -->
+<section>
+  <h2>High — 2 Findings</h2>
+
+  <div class="finding high">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">HIGH</span>
+      <span class="finding-title">Server banner lộ Apache version + OS trên mọi response</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p><code>Server: Apache/2.4.68 (Debian)</code> trong mọi response header, kể cả trang lỗi. Cho phép attacker tra CVE nhắm mục tiêu chính xác.</p>
+      <div class="label">File cần sửa: <code>.htaccess</code> — thêm vào cuối</div>
+      <pre><span class="c-add"># Ẩn server version (cần ServerTokens Prod trong httpd.conf nếu có quyền)</span>
+&lt;IfModule mod_headers.c&gt;
+    Header unset Server
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
+&lt;/IfModule&gt;</pre>
+      <div class="label">Lưu ý</div>
+      <p>Trên Matbao shared hosting, <code>ServerTokens Prod</code> phải nhờ support set trong httpd.conf. <code>Header unset Server</code> trong .htaccess đủ để ẩn version khỏi application responses.</p>
+    </div>
+  </div>
+
+  <div class="finding high">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">HIGH</span>
+      <span class="finding-title">Method check chạy TRƯỚC auth — lộ cấu trúc route</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>Server trả về <code>405 METHOD_NOT_ALLOWED</code> trước khi check API key. Attacker không có key vẫn enumerate được route/method qua error codes.</p>
+      <div class="label">File cần sửa: <code>api/v1/bookings.php</code> — đổi thứ tự check</div>
+      <pre><span class="c-comment">// TRƯỚC: method check → rate limit → (không có auth cho bookings)</span>
+<span class="c-del">if ($_SERVER['REQUEST_METHOD'] !== 'POST') {</span>
+<span class="c-del">    Response::error('METHOD_NOT_ALLOWED', '...', 405);</span>
+<span class="c-del">}</span>
+<span class="c-del">if (!RateLimiter::check('booking_submit', 10, 3600)) { ... }</span>
+
+<span class="c-comment">// SAU: rate limit trước, rồi method check</span>
+<span class="c-add">if (!RateLimiter::check('booking_submit', 10, 3600)) {</span>
+<span class="c-add">    Response::error('RATE_LIMITED', 'Quá nhiều yêu cầu.', 429);</span>
+<span class="c-add">}</span>
+<span class="c-add">if ($_SERVER['REQUEST_METHOD'] !== 'POST') {</span>
+<span class="c-add">    Response::error('INVALID_REQUEST', 'Yêu cầu không hợp lệ.', 400); // 400 thay vì 405</span>
+<span class="c-add">}</span></pre>
+      <p>Trả về 400 thay vì 405 giảm information leakage về method expectations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Findings: MEDIUM -->
+<section>
+  <h2>Medium — 3 Findings</h2>
+
+  <div class="finding medium">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">MEDIUM</span>
+      <span class="finding-title">Thiếu Content-Security-Policy và Strict-Transport-Security</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">File cần sửa: <code>.htaccess</code> — bổ sung vào block headers</div>
+      <pre><span class="c-add">&lt;IfModule mod_headers.c&gt;
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    <span class="c-add">Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS</span>
+    <span class="c-add">Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'"</span>
+&lt;/IfModule&gt;</span></pre>
+      <p>Điều chỉnh CSP sau khi kiểm tra các script/style bên ngoài thực tế dùng trong template HTML.</p>
+    </div>
+  </div>
+
+  <div class="finding medium">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">MEDIUM</span>
+      <span class="finding-title">Admin /admin/ không có rate limit hay CAPTCHA — dễ brute force</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>Login form serve cho mọi IP, không có protection chống brute force. Apache layer không có HTTP Basic Auth.</p>
+      <div class="label">File cần sửa: <code>admin/login.php</code> — thêm rate limit</div>
+      <pre><span class="c-add">require_once __DIR__ . '/../backend/security/RateLimiter.php';</span>
+
+<span class="c-add">// Thêm trước khi xử lý POST login</span>
+<span class="c-add">if ($_SERVER['REQUEST_METHOD'] === 'POST') {</span>
+<span class="c-add">    // 5 lần thử / 15 phút mỗi IP</span>
+<span class="c-add">    if (!RateLimiter::check('admin_login', 5, 900)) {</span>
+<span class="c-add">        $error = 'Quá nhiều lần thử đăng nhập. Vui lòng chờ 15 phút.';</span>
+<span class="c-add">        // redirect về login với error, không process</span>
+<span class="c-add">    }</span>
+<span class="c-add">}</span></pre>
+    </div>
+  </div>
+
+  <div class="finding medium">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">MEDIUM</span>
+      <span class="finding-title">SQLi / XSS / Mass Assignment chưa verify được — bị block bởi rate limit</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>Toàn bộ test payload SQLi, XSS, mass assignment đều bị 429 RATE_LIMITED trước khi đến business logic. Rate limit đang hoạt động đúng — nhưng cần verify code review thủ công.</p>
+      <div class="label">Khuyến nghị</div>
+      <p>Review <code>backend/core/Validator.php</code> và <code>backend/security/Sanitizer.php</code> để confirm: (1) parameterized queries trong tất cả Repository, (2) Sanitizer::text() escapes HTML output, (3) không có field nào inject được role/status/id vào payload.</p>
+      <p>Code hiện tại dùng PDO prepared statements và whitelist fields tường minh trong BookingService — <strong>có vẻ đúng</strong> nhưng cần audit thủ công từng Repository file.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Findings: LOW -->
+<section>
+  <h2>Low — 2 Findings</h2>
+
+  <div class="finding low">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">LOW</span>
+      <span class="finding-title">/api/v1/services public không cần auth — có thể intentional</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>GET /api/v1/services trả về 9 dịch vụ và giá (price: '0.00') không cần API key. Booking form cần data này để populate dropdown — public là thiết kế đúng nếu đây là data marketing.</p>
+      <div class="label">Khuyến nghị</div>
+      <p>Nếu price là thông tin nhạy cảm (có chiến lược pricing khác nhau theo kênh), thêm auth. Nếu là public catalog — không cần fix, chỉ cần document rõ là intentional.</p>
+    </div>
+  </div>
+
+  <div class="finding low">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">LOW</span>
+      <span class="finding-title">Internal host:port lộ trong body trang lỗi 403</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <div class="label">Mô tả</div>
+      <p>Trang lỗi Apache mặc định chứa <code>&lt;address&gt;Apache/2.4.68 (Debian) Server at 127.0.0.1 Port 8080&lt;/address&gt;</code>. Lộ internal host/port.</p>
+      <div class="label">File cần sửa: <code>.htaccess</code></div>
+      <pre><span class="c-add"># Custom error pages — ẩn server info</span>
+<span class="c-add">ErrorDocument 403 /errors/403.html</span>
+<span class="c-add">ErrorDocument 404 /errors/404.html</span>
+<span class="c-add">ErrorDocument 500 /errors/500.html</span></pre>
+      <p>Tạo các file error page tùy chỉnh không có thông tin server. Trên Matbao production, internal IP sẽ khác — ưu tiên thấp nhưng nên fix trước launch.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Findings: INFO -->
+<section>
+  <h2>Info — 2 Findings</h2>
+
+  <div class="finding info">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">INFO</span>
+      <span class="finding-title">.env và backend/.env bị block đúng — nhưng không cover .example variants</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <p>.env → 403 ✓, backend/.env → 403 ✓. Pattern <code>^\\.env</code> chỉ match đúng filename ".env". Fix đã cover trong CRITICAL #2.</p>
+    </div>
+  </div>
+
+  <div class="finding info">
+    <div class="finding-header" onclick="this.closest('.finding').classList.toggle('open')">
+      <span class="sev-tag">INFO</span>
+      <span class="finding-title">Path traversal, method override, IDOR — đều bị chặn đúng</span>
+      <span class="finding-toggle">▾</span>
+    </div>
+    <div class="finding-body">
+      <p>Path traversal <code>../</code> và <code>%2F</code> → 404. DELETE/PUT → 405. /api/v1/bookings/:id không expose. X-Forwarded-For bypass rate limit không thành công. Các control này hoạt động đúng — không cần action.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Passing checks -->
+<section>
+  <h2>Kiểm Tra Đang Pass</h2>
+  <div class="pass-grid">
+    <div class="pass-item">phpinfo bị block</div>
+    <div class="pass-item">PHP source files → 403</div>
+    <div class="pass-item">backup.sql → 403</div>
+    <div class="pass-item">log files → 403</div>
+    <div class="pass-item">Rate limiting active</div>
+    <div class="pass-item">Không leak stack trace</div>
+    <div class="pass-item">X-Frame-Options</div>
+    <div class="pass-item">X-Content-Type-Options</div>
+    <div class="pass-item">X-XSS-Protection</div>
+    <div class="pass-item">Referrer-Policy</div>
+    <div class="pass-item">Path traversal blocked</div>
+    <div class="pass-item">IDOR không expose</div>
+    <div class="pass-item">PDO prepared statements</div>
+    <div class="pass-item">Honeypot anti-bot</div>
+    <div class="pass-item">Bcrypt cost=12</div>
+    <div class="pass-item">Directory listing off</div>
+  </div>
+</section>
+
+<script>
+// All findings open/close — initial state: only criticals open
+document.querySelectorAll('.finding:not(.critical)').forEach(f => f.classList.remove('open'));
+</script>

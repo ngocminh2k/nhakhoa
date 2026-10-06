@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'Email hoặc mật khẩu không chính xác.';
                 }
             } catch (Throwable $e) {
-                $error = 'Lỗi hệ thống: ' . $e->getMessage();
+                $error = (getenv('APP_ENV') === 'development') ? ('Lỗi hệ thống: ' . $e->getMessage()) : 'Lỗi hệ thống. Vui lòng thử lại sau.';
             }
         }
     }

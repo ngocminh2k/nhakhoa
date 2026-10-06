@@ -39,5 +39,6 @@ try {
         'slots' => $slots,
     ]);
 } catch (Throwable $e) {
-    Response::error('INTERNAL_ERROR', 'Lỗi kiểm tra lịch trống: ' . $e->getMessage(), 500);
+    $msg = (getenv('APP_ENV') === 'development') ? ('Lỗi kiểm tra lịch trống: ' . $e->getMessage()) : 'Không thể kiểm tra lịch trống. Vui lòng thử lại sau.';
+    Response::error('INTERNAL_ERROR', $msg, 500);
 }

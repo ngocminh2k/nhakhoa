@@ -55,5 +55,6 @@ try {
         'url'     => $publicUrl,
     ], ($result['action'] === 'created' ? 201 : 200));
 } catch (Throwable $e) {
-    Response::error('POST_CREATION_FAILED', 'Lỗi lưu bài viết: ' . $e->getMessage(), 500);
+    $msg = (getenv('APP_ENV') === 'development') ? ('Lỗi lưu bài viết: ' . $e->getMessage()) : 'Lỗi hệ thống khi lưu bài viết.';
+    Response::error('POST_CREATION_FAILED', $msg, 500);
 }

@@ -1,0 +1,308 @@
+<title>Google Sheets Setup</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f8f9fa; --fg: #18181b; --card: #ffffff;
+    --accent: #005A36; --accent2: #EABF0E;
+    --border: #e2e8f0; --muted: #64748b;
+    --radius: 10px; --font: system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1117; --fg: #e2e8f0; --card: #1a1d27;
+      --border: #2d3748; --muted: #94a3b8; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117; --fg: #e2e8f0; --card: #1a1d27;
+    --border: #2d3748; --muted: #94a3b8; color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--fg); font-size: 15px; line-height: 1.6; }
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar { width: 230px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border); padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-title { padding: 0 20px 16px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .nav-item { display: block; padding: 8px 20px; font-size: 13.5px; color: var(--fg); text-decoration: none; border-left: 3px solid transparent; cursor: pointer; }
+  .nav-item:hover, .nav-item.active { background: color-mix(in srgb, var(--accent) 8%, transparent); border-left-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .main { flex: 1; padding: 36px 40px; max-width: 900px; }
+  .page-header { margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid var(--accent2); }
+  .page-header h1 { font-size: 26px; font-weight: 800; color: var(--accent); }
+  .page-header p { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .item-label { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .item-content { font-size: 14px; color: var(--fg); }
+  .item-code { background: #0f172a; color: #e2e8f0; font-family: monospace; font-size: 13px; padding: 10px 14px; border-radius: 6px; margin-top: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .item-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; padding-left: 10px; border-left: 3px solid var(--accent2); }
+  @media (max-width: 600px) {
+    .shell { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+    .main { padding: 20px 16px; }
+  }
+</style>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main">
+    <div class="page-header" id="pageHeader"></div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TEMPLATE — DO NOT EDIT — AI skips everything above
+     ═══════════════════════════════════════════════════ -->
+
+<script>
+(function() {
+  const raw = document.getElementById('doc-data');
+  if (!raw) return;
+  const d = JSON.parse(raw.textContent);
+  const m = d.meta || {};
+  document.title = m.title || 'Document';
+  document.getElementById('pageHeader').innerHTML =
+    `<h1>${m.title || ''}</h1>` +
+    (m.subtitle ? `<p>${m.subtitle}</p>` : '') +
+    (m.version ? `<p style="font-size:12px;margin-top:4px;color:var(--muted);">v${m.version}${m.updated ? ' · Cập nhật: ' + m.updated : ''}${m.project ? ' · ' + m.project : ''}</p>` : '');
+  const sidebar = document.getElementById('sidebar');
+  const content = document.getElementById('content');
+  sidebar.innerHTML = '<div class="sidebar-title">Nội dung</div>' +
+    (d.sections || []).map((s, i) =>
+      `<span class="nav-item${i===0?' active':''}" data-idx="${i}">${s.icon||''} ${s.title}</span>`
+    ).join('');
+  content.innerHTML = (d.sections || []).map((s, i) =>
+    `<div class="section${i===0?' active':''}" data-idx="${i}">
+      <div class="section-title">${s.icon||''} ${s.title}</div>
+      ${(s.items||[]).map(it =>
+        `<div class="item">
+          <div class="item-label">${it.label}</div>
+          <div class="item-content">${it.content || ''}</div>
+          ${it.code ? `<div class="item-code">${it.code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : ''}
+          ${it.note ? `<div class="item-note">${it.note}</div>` : ''}
+        </div>`
+      ).join('')}
+    </div>`
+  ).join('');
+  sidebar.addEventListener('click', e => {
+    const t = e.target.closest('.nav-item');
+    if (!t) return;
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    content.querySelector(`.section[data-idx="${t.dataset.idx}"]`).classList.add('active');
+  });
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     DATA — AI EDITS ONLY THIS BLOCK
+     ═══════════════════════════════════════════════════ -->
+<script type="application/json" id="doc-data">
+{
+  "type": "guide",
+  "meta": {
+    "title": "Hướng Dẫn Setup Google Sheets Sync",
+    "subtitle": "Đồng bộ lịch đặt khám tự động từ hệ thống vào Google Sheets",
+    "version": "1.0.0",
+    "updated": "2026-10-06",
+    "project": "Nha Khoa Kim Dung"
+  },
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Tổng quan",
+      "icon": "📋",
+      "items": [
+        {
+          "label": "Luồng hoạt động",
+          "content": "Khi khách đặt lịch qua website → booking lưu vào DB với <code>sheet_sync_status='pending'</code> → cronjob chạy mỗi 5 phút → gọi Google Sheets API → ghi hàng mới vào sheet → cập nhật status thành <code>'synced'</code>. Nếu lỗi: status thành <code>'failed'</code>, lỗi ghi vào <code>sheet_sync_error</code>, cronjob sẽ retry lần sau.",
+          "note": "Cần bật GOOGLE_SHEETS_ENABLED=true trong .env và có credentials JSON hợp lệ."
+        },
+        {
+          "label": "Các cột trong Google Sheet",
+          "content": "Sheet cần có header ở hàng 1 (range mặc định: Bookings!A:N) với 14 cột theo thứ tự:",
+          "code": "A: Mã đặt lịch | B: Họ tên | C: Số điện thoại | D: Dịch vụ\nE: Ngày khám | F: Giờ bắt đầu | G: Giờ kết thúc | H: Trạng thái\nI: Ghi chú | J: Trang đặt | K: UTM Source | L: UTM Medium\nM: UTM Campaign | N: Thời điểm tạo",
+          "note": "Tên cột có thể đặt tự do, hệ thống ghi theo vị trí (A-N), không theo tên header."
+        }
+      ]
+    },
+    {
+      "id": "gcp",
+      "title": "Bước 1: Tạo Google Cloud Project",
+      "icon": "☁️",
+      "items": [
+        {
+          "label": "Tạo Project mới",
+          "content": "Truy cập Google Cloud Console và tạo project:",
+          "code": "1. Vào https://console.cloud.google.com\n2. Click dropdown project (góc trên trái) → \"New Project\"\n3. Project name: nhakhoa-kimdung (hoặc tên tuỳ ý)\n4. Click \"Create\" → đợi ~30 giây",
+          "note": "Dùng Google account của phòng khám, không dùng tài khoản cá nhân."
+        },
+        {
+          "label": "Bật Google Sheets API",
+          "content": "Trong project vừa tạo, bật API:",
+          "code": "1. Menu trái → \"APIs & Services\" → \"Library\"\n2. Tìm \"Google Sheets API\"\n3. Click vào → \"Enable\"\n4. Tìm thêm \"Google Drive API\" → \"Enable\"\n   (Drive API cần để list/access spreadsheet)",
+          "note": "Phải bật cả hai: Sheets API và Drive API."
+        }
+      ]
+    },
+    {
+      "id": "service-account",
+      "title": "Bước 2: Tạo Service Account",
+      "icon": "🔑",
+      "items": [
+        {
+          "label": "Tạo Service Account",
+          "content": "Service Account là \"bot\" sẽ ghi vào sheet thay mặt hệ thống:",
+          "code": "1. Menu trái → \"APIs & Services\" → \"Credentials\"\n2. \"+ Create Credentials\" → \"Service Account\"\n3. Service account name: nhakhoa-sheets-bot\n4. Service account ID: tự điền (nhakhoa-sheets-bot)\n5. Click \"Create and Continue\"\n6. Role: chọn \"Editor\" (hoặc \"Basic > Editor\")\n7. Click \"Continue\" → \"Done\"",
+          "note": "Ghi lại email service account dạng: nhakhoa-sheets-bot@<project-id>.iam.gserviceaccount.com"
+        },
+        {
+          "label": "Tải JSON credentials",
+          "content": "Tạo và tải key JSON cho service account:",
+          "code": "1. Click vào service account vừa tạo\n2. Tab \"Keys\" → \"Add Key\" → \"Create new key\"\n3. Key type: JSON → \"Create\"\n4. File JSON tự động tải về máy\n5. Đặt tên lại: google-service-account.json",
+          "note": "File này cực kỳ nhạy cảm — không commit lên git, không share qua email."
+        },
+        {
+          "label": "Cấu trúc file JSON credentials",
+          "content": "File JSON tải về có dạng (không tự tạo, phải dùng file Google cấp):",
+          "code": "{\n  \"type\": \"service_account\",\n  \"project_id\": \"nhakhoa-kimdung\",\n  \"private_key_id\": \"abc123...\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"client_email\": \"nhakhoa-sheets-bot@nhakhoa-kimdung.iam.gserviceaccount.com\",\n  \"client_id\": \"...\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\"\n}",
+          "note": "private_key chứa \\n thật (xuống dòng được escape). Không sửa file này."
+        }
+      ]
+    },
+    {
+      "id": "sheet",
+      "title": "Bước 3: Chuẩn bị Google Sheet",
+      "icon": "📊",
+      "items": [
+        {
+          "label": "Tạo Google Sheet mới",
+          "content": "Tạo spreadsheet để nhận dữ liệu booking:",
+          "code": "1. Vào https://sheets.google.com → \"+ Blank\"\n2. Đặt tên: Lịch Đặt Khám - Nha Khoa Kim Dung\n3. Đổi tên sheet tab (góc dưới): \"Bookings\"\n4. Thêm header hàng 1:",
+          "note": "Tên tab sheet phải khớp với GOOGLE_SHEET_RANGE trong .env (mặc định: Bookings!A:N)"
+        },
+        {
+          "label": "Tạo header hàng 1",
+          "content": "Copy paste dòng sau vào ô A1, Enter để tạo 14 cột header:",
+          "code": "Mã đặt lịch\tHọ tên\tSố điện thoại\tDịch vụ\tNgày khám\tGiờ bắt đầu\tGiờ kết thúc\tTrạng thái\tGhi chú\tTrang đặt\tUTM Source\tUTM Medium\tUTM Campaign\tThời điểm tạo",
+          "note": "Paste vào ô A1 — Google Sheets tự tách thành 14 cột theo tab."
+        },
+        {
+          "label": "Lấy Spreadsheet ID",
+          "content": "ID nằm trong URL của sheet:",
+          "code": "URL mẫu:\nhttps://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit\n\nSpreadsheet ID là phần in đậm:\n1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms\n\nCopy phần này để điền vào GOOGLE_SHEET_ID trong .env"
+        },
+        {
+          "label": "Share sheet với Service Account",
+          "content": "Đây là bước quan trọng nhất — nếu quên bước này sẽ bị lỗi 403:",
+          "code": "1. Trong Google Sheet → nút \"Share\" (góc trên phải)\n2. Thêm email service account:\n   nhakhoa-sheets-bot@nhakhoa-kimdung.iam.gserviceaccount.com\n3. Quyền: \"Editor\"\n4. Bỏ tick \"Notify people\"\n5. Click \"Share\"",
+          "note": "Dùng đúng email client_email trong file JSON credentials."
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "title": "Bước 4: Cấu hình Server",
+      "icon": "🖥️",
+      "items": [
+        {
+          "label": "Upload credentials lên Matbao",
+          "content": "Upload file JSON credentials qua File Manager cPanel hoặc FTP:",
+          "code": "Đặt file tại:\n/home/<cpanel_user>/public_html/credentials/google-service-account.json\n\nSau đó set quyền:\nchmod 600 credentials/google-service-account.json\nchmod 700 credentials/",
+          "note": "Thư mục credentials/ nằm ngoài public_html nếu có thể, hoặc chặn bằng .htaccess đã có sẵn."
+        },
+        {
+          "label": "Cập nhật file .env trên server",
+          "content": "Sửa file .env trên server (qua File Manager hoặc SSH):",
+          "code": "GOOGLE_SHEETS_ENABLED=true\nGOOGLE_SHEET_ID=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms\nGOOGLE_SHEET_RANGE=Bookings!A:N\nGOOGLE_SERVICE_ACCOUNT_JSON=credentials/google-service-account.json",
+          "note": "Path của GOOGLE_SERVICE_ACCOUNT_JSON là relative từ root public_html/."
+        },
+        {
+          "label": "Kiểm tra PHP có extension cần thiết",
+          "content": "SSH vào server hoặc tạo file phpinfo.php tạm để kiểm tra:",
+          "code": "# Qua SSH:\nphp -m | grep -E 'curl|openssl|json'\n\n# Cần có:\nextension=curl\nextension=openssl\nextension=json\n\n# Nếu thiếu curl trên Matbao:\n# cPanel → PHP Extensions Manager → bật php-curl",
+          "note": "GoogleSheetsService dùng cURL để gọi OAuth2 token và Sheets API."
+        }
+      ]
+    },
+    {
+      "id": "cronjob",
+      "title": "Bước 5: Cài Cronjob",
+      "icon": "⏰",
+      "items": [
+        {
+          "label": "Thêm Cronjob trên cPanel Matbao",
+          "content": "Vào cPanel → Cron Jobs → thêm cron mới:",
+          "code": "# Chạy mỗi 5 phút\nMinute:  */5\nHour:    *\nDay:     *\nMonth:   *\nWeekday: *\n\nCommand:\nphp /home/<cpanel_user>/public_html/backend/jobs/retry_google_sheet.php >> /home/<cpanel_user>/logs/sheet_sync.log 2>&1",
+          "note": "Thay <cpanel_user> bằng tên user cPanel thật. Log ghi vào ~/logs/sheet_sync.log để dễ debug."
+        },
+        {
+          "label": "Tạo thư mục log",
+          "content": "Tạo thư mục logs trước khi cronjob chạy lần đầu:",
+          "code": "# Qua SSH hoặc File Manager:\nmkdir -p /home/<cpanel_user>/logs\nchmod 755 /home/<cpanel_user>/logs",
+          "note": "Thư mục logs/ nằm ngoài public_html — không truy cập được qua web, an toàn hơn."
+        },
+        {
+          "label": "Kiểm tra cronjob thủ công",
+          "content": "Chạy thử job ngay không cần đợi cron:",
+          "code": "# SSH vào server:\nphp /home/<cpanel_user>/public_html/backend/jobs/retry_google_sheet.php\n\n# Output mẫu khi thành công:\n[2026-10-06 09:00:01] Starting Google Sheet retry job for 3 pending/failed bookings...\n  - Booking KD-20261006-A1B2 (ID: 42): Synced successfully.\n  - Booking KD-20261006-C3D4 (ID: 43): Synced successfully.\n[2026-10-06 09:00:02] Finished: 2/3 synced.",
+          "note": "Nếu output 0 pending bookings = không có booking nào cần sync (bình thường khi chưa có booking mới)."
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "title": "Bước 6: Kiểm tra & Debug",
+      "icon": "🔍",
+      "items": [
+        {
+          "label": "Test luồng end-to-end",
+          "content": "Sau khi cài xong, test theo trình tự:",
+          "code": "1. Đặt lịch thử qua website (dùng số điện thoại test)\n2. Kiểm tra DB — booking có sheet_sync_status='pending'\n3. Chạy thủ công: php backend/jobs/retry_google_sheet.php\n4. Kiểm tra Google Sheet — phải có hàng mới\n5. Kiểm tra DB lại — status phải là 'synced'",
+          "note": "Nếu dùng script test: node scripts/test_google_sheet_sync.mjs"
+        },
+        {
+          "label": "Debug khi sync bị lỗi",
+          "content": "Query DB để xem chi tiết lỗi:",
+          "code": "-- Xem booking bị lỗi sync:\nSELECT id, booking_code, sheet_sync_status, sheet_sync_error, created_at\nFROM bookings\nWHERE sheet_sync_status IN ('pending', 'failed')\nORDER BY created_at DESC\nLIMIT 20;\n\n-- Reset để retry:\nUPDATE bookings SET sheet_sync_status='pending', sheet_sync_error=NULL\nWHERE sheet_sync_status='failed';",
+          "note": "Lỗi thường gặp: 403 (chưa share sheet), 400 (spreadsheet ID sai), SSL error (thiếu openssl)."
+        },
+        {
+          "label": "Các lỗi thường gặp",
+          "content": "Danh sách lỗi và cách fix:",
+          "code": "❌ \"Error 403: The caller does not have permission\"\n→ Chưa share sheet với email service account. Xem Bước 3.\n\n❌ \"Error 400: Unable to parse range\"\n→ Tên tab sheet không phải \"Bookings\" hoặc GOOGLE_SHEET_RANGE sai.\n→ Fix: Kiểm tra tên tab trong Google Sheet.\n\n❌ \"file_get_contents: failed to open stream\"\n→ Path GOOGLE_SERVICE_ACCOUNT_JSON sai.\n→ Fix: Dùng đường dẫn tuyệt đối: /home/user/public_html/credentials/...\n\n❌ \"SSL certificate problem\"\n→ Server thiếu CA bundle.\n→ Fix: Trong GoogleSheetsService, thêm CURLOPT_SSL_VERIFYPEER => false (chỉ để debug).",
+          "note": "Sau khi fix lỗi, reset booking về 'pending' rồi chạy lại retry job."
+        },
+        {
+          "label": "Xem log cronjob",
+          "content": "Theo dõi log để biết cronjob có chạy không:",
+          "code": "# SSH:\ntail -f /home/<cpanel_user>/logs/sheet_sync.log\n\n# Hoặc xem 50 dòng cuối:\ntail -50 /home/<cpanel_user>/logs/sheet_sync.log\n\n# Xem log lỗi Apache/PHP:\ntail -f /home/<cpanel_user>/logs/error_log",
+          "note": "Nếu log file trống sau 5 phút = cronjob chưa chạy, kiểm tra lại đường dẫn php và command."
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Bảo mật credentials",
+      "icon": "🔒",
+      "items": [
+        {
+          "label": "Các quy tắc bảo mật bắt buộc",
+          "content": "Credentials Google là target tấn công — tuân thủ nghiêm:",
+          "code": "✅ PHẢI làm:\n- chmod 600 credentials/google-service-account.json\n- Thêm credentials/ vào .gitignore\n- Không bao giờ commit file JSON lên git\n- Không share file qua Zalo, email, chat\n- Rotate key mỗi 6 tháng (GCP Console → Service Account → Keys → Add Key, xóa key cũ)\n\n❌ KHÔNG làm:\n- Để credentials trong public_html mà không chặn .htaccess\n- Copy key vào code PHP hardcoded\n- Dùng chung 1 key cho nhiều môi trường (local/staging/production)",
+          "note": "Nếu lỡ commit credentials lên git: xóa key ngay trên GCP Console → tạo key mới → xóa file khỏi git history bằng git-filter-repo."
+        },
+        {
+          "label": "Thêm credentials/ vào .gitignore",
+          "content": "Đảm bảo credentials không bị push lên GitHub:",
+          "code": "# Thêm vào .gitignore:\necho 'credentials/' >> .gitignore\necho '*.json' >> .gitignore\ngit add .gitignore\ngit commit -m \"chore: ignore credentials directory\"",
+          "note": "Kiểm tra: git status không được hiện credentials/google-service-account.json."
+        }
+      ]
+    }
+  ]
+}
+</script>

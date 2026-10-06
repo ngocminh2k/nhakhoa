@@ -17,5 +17,6 @@ try {
     $services = $serviceService->getActiveServices();
     Response::success(['services' => $services]);
 } catch (Throwable $e) {
-    Response::error('INTERNAL_ERROR', 'Không thể tải danh sách dịch vụ: ' . $e->getMessage(), 500);
+    $msg = (getenv('APP_ENV') === 'development') ? ('Không thể tải danh sách dịch vụ: ' . $e->getMessage()) : 'Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.';
+    Response::error('INTERNAL_ERROR', $msg, 500);
 }

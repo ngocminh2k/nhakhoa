@@ -87,11 +87,14 @@ try {
         'date'         => $result['date'],
         'time'         => $result['time'],
     ], 201);
+} catch (InvalidArgumentException $e) {
+    Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
 } catch (RuntimeException $e) {
     if ($e->getCode() === 409) {
         Response::error('SLOT_UNAVAILABLE', $e->getMessage(), 409);
     }
     Response::error('BOOKING_FAILED', $e->getMessage(), 400);
 } catch (Throwable $e) {
-    Response::error('SERVER_ERROR', 'Có lỗi xảy ra trong quá trình đặt lịch: ' . $e->getMessage(), 500);
+    $msg = (getenv('APP_ENV') === 'development') ? ('Có lỗi xảy ra: ' . $e->getMessage()) : 'Có lỗi xảy ra trong quá trình đặt lịch. Vui lòng thử lại sau.';
+    Response::error('SERVER_ERROR', $msg, 500);
 }

@@ -27,6 +27,9 @@ Options -Indexes
 RewriteEngine On
 RewriteBase /
 
+# Pass Authorization header to PHP in Apache / FastCGI / LiteSpeed
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
 # Deny direct access to internal backend logic
 RewriteRule ^backend/(core|repositories|security|auth|config|storage)/ - [F,L]
 

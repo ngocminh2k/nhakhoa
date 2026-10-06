@@ -89,7 +89,7 @@ async function run() {
   check('success=true trong response', bookingData?.success === true,
     bookingRes.body.slice(0, 200));
 
-  const bookingCode = bookingData?.data?.booking_code ?? '';
+  const bookingCode = bookingData?.booking_code ?? bookingData?.data?.booking_code ?? '';
   check('booking_code tồn tại', !!bookingCode, bookingCode);
 
   // ── TEST 2: Format booking_code ──────────────────────────────

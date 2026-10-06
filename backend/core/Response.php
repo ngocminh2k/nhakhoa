@@ -15,9 +15,10 @@ class Response {
         if (in_array($origin, $allowed, true)) {
             header("Access-Control-Allow-Origin: $origin");
             header('Vary: Origin');
-        } elseif (getenv('APP_ENV') === 'development') {
-            // Allow localhost in dev only
-            header('Access-Control-Allow-Origin: *');
+        } elseif (getenv('APP_ENV') === 'development' && preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#', $origin)) {
+            // Allow local origin only in dev
+            header("Access-Control-Allow-Origin: $origin");
+            header('Vary: Origin');
         }
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
