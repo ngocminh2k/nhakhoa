@@ -9,10 +9,18 @@ class Response {
         header('X-Frame-Options: SAMEORIGIN');
         header('Referrer-Policy: strict-origin-when-cross-origin');
 
-        // Allow CORS if needed by public site
-        header('Access-Control-Allow-Origin: *');
+        // CORS — whitelist only known origins
+        $allowed = ['https://nhakhoakimdung.com', 'https://www.nhakhoakimdung.com'];
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        if (in_array($origin, $allowed, true)) {
+            header("Access-Control-Allow-Origin: $origin");
+            header('Vary: Origin');
+        } elseif (getenv('APP_ENV') === 'development') {
+            // Allow localhost in dev only
+            header('Access-Control-Allow-Origin: *');
+        }
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+        header('Access-Control-Allow-Headers: Content-Type, X-API-Key');
 
         foreach ($headers as $key => $val) {
             header("$key: $val");
