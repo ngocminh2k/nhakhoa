@@ -162,8 +162,10 @@ async function run() {
   // 9. Concurrency / Race Condition on Booking Slot (2 simultaneous requests)
   resetLimits();
   {
-    const date = '2026-12-01';
-    const time = '11:00';
+    const randomDay = String(10 + Math.floor(Math.random() * 18)).padStart(2, '0');
+    const randomMonth = String(1 + Math.floor(Math.random() * 12)).padStart(2, '0');
+    const date = `2027-${randomMonth}-${randomDay}`;
+    const time = '09:00';
     const [res1, res2] = await Promise.all([
       req({
         path: '/api/v1/bookings',
@@ -181,18 +183,18 @@ async function run() {
     record('V9-RaceCondition', 'GET_LOCK chặn double-booking (1 thành công 201, 1 xung đột 409)', raceSafe, `Req1: HTTP ${res1.status}, Req2: HTTP ${res2.status}`);
   }
 
-  // 10. Rate Limiting Booking API Flood (12 rapid requests)
+  // 10. Rate Limiting Booking API Flood (35 rapid requests vượt ngưỡng 30/15m)
   {
-    const floodRequests = Array.from({ length: 12 }, (_, i) =>
+    const floodRequests = Array.from({ length: 35 }, (_, i) =>
       req({
         path: '/api/v1/bookings',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
-      }, { name: `Spam ${i}`, phone: `090000000${i}`, service_id: 1, date: '2026-12-02', time: '15:00' })
+      }, { name: `Spam ${i}`, phone: `090000000${i % 10}`, service_id: 1, date: '2028-01-01', time: '15:00' })
     );
     const responses = await Promise.all(floodRequests);
     const has429 = responses.some(r => r.status === 429);
-    record('V10-RateLimit', 'API Rate Limiting kích hoạt khi bị spam liên tiếp (HTTP 429)', has429, `Đã ghi nhận HTTP 429`);
+    record('V10-RateLimit', 'API Rate Limiting kích hoạt khi 1 IP gửi dồn dập >30 lần (HTTP 429)', has429, `Đã ghi nhận HTTP 429 bảo vệ hệ thống`);
   }
 
   console.log('\n═══════════════════════════════════════════════════════════════════');

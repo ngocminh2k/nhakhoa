@@ -21,17 +21,28 @@ class RateLimiter {
 
     /**
      * Check if client exceeded limit. If not, record attempt.
+     * Uses atomic file lock (LOCK_EX) across read-modify-write to eliminate concurrency race conditions.
      */
     public static function check(string $action, int $maxAttempts, int $decaySeconds, ?string $customIp = null): bool {
         $ip = $customIp ?? self::getClientIp();
         $key = md5($action . '_' . $ip);
         $file = self::getStorageDir() . '/' . $key . '.json';
 
+        $fp = @fopen($file, 'c+');
+        if (!$fp) {
+            return true; // Fail open if storage is unwriteable
+        }
+
+        flock($fp, LOCK_EX);
+
         $now = time();
         $data = ['attempts' => 0, 'reset_at' => $now + $decaySeconds];
 
-        if (file_exists($file)) {
-            $content = @file_get_contents($file);
+        clearstatcache(true, $file);
+        $size = @filesize($file);
+        if ($size && $size > 0) {
+            rewind($fp);
+            $content = fread($fp, $size);
             $parsed = json_decode($content, true);
             if ($parsed && isset($parsed['reset_at']) && $parsed['reset_at'] > $now) {
                 $data = $parsed;
@@ -39,12 +50,26 @@ class RateLimiter {
         }
 
         if ($data['attempts'] >= $maxAttempts) {
+            flock($fp, LOCK_UN);
+            fclose($fp);
             return false; // Rate limit exceeded
         }
 
         $data['attempts']++;
-        @file_put_contents($file, json_encode($data), LOCK_EX);
+        rewind($fp);
+        ftruncate($fp, 0);
+        fwrite($fp, json_encode($data));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+        fclose($fp);
         return true;
+    }
+
+    /**
+     * Global rate limiter (across all rotating IPs) to protect against distributed botnet DDoS
+     */
+    public static function checkGlobal(string $action, int $maxAttempts, int $decaySeconds): bool {
+        return self::check($action, $maxAttempts, $decaySeconds, 'global_circuit_breaker');
     }
 
     /**

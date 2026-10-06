@@ -15,9 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('METHOD_NOT_ALLOWED', 'Chỉ chấp nhận phương thức POST.', 405);
 }
 
-// 1. Rate Limiting: Max 10 bookings per IP per hour
-if (!RateLimiter::check('booking_submit', 10, 3600)) {
-    Response::error('RATE_LIMITED', 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau 1 giờ.', 429);
+// 1. Rate Limiting: 30 bookings/15m per IP (phù hợp mạng 4G/CGNAT chung IP) & 300/phút toàn hệ thống (chống botnet DDoS)
+// ponytail: nâng lên Redis sliding-window khi hệ thống scale đa server. File-based LOCK_EX hiện tại chịu tốt hàng ngàn req/phút trên Mắt Bão.
+if (!RateLimiter::check('booking_submit', 30, 900)) {
+    Response::error('RATE_LIMITED', 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau 15 phút.', 429);
+}
+if (!RateLimiter::checkGlobal('booking_global_burst', 300, 60)) {
+    Response::error('SERVER_BUSY', 'Hệ thống đang tiếp nhận lượng đặt lịch đột biến. Vui lòng thử lại sau giây lát.', 429);
 }
 
 // 2. Parse JSON or Form Payload
