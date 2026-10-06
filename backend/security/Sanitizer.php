@@ -12,23 +12,27 @@ class Sanitizer {
 
     /**
      * Clean rich HTML content (e.g. from blog automation) to prevent XSS.
-     * Removes dangerous tags (script, iframe, object, embed, style, applet)
-     * and attributes (onload, onerror, onclick, javascript: links).
+     * Strips dangerous tags (script, iframe, style, svg, math, object, embed, etc.)
+     * and event handlers (onload, onerror, onclick...) regardless of delimiters.
      */
     public static function html(?string $html): string {
         if ($html === null) return '';
 
-        // Remove script, iframe, style, object, embed tags and their contents
-        $clean = preg_replace('#<(script|iframe|style|object|embed|applet)[^>]*>.*?</\1>#is', '', $html);
+        // ponytail: upgrade to HTMLPurifier if user editors need arbitrary inline styles/classes. Current strip_tags whitelist is zero-dependency.
+        // 1. Remove dangerous blocks and their contents completely
+        $clean = preg_replace('#<(script|iframe|style|object|embed|applet|svg|math)[^>]*>.*?</\1>#is', '', $html);
+        $clean = preg_replace('#<(script|iframe|style|object|embed|applet|svg|math)[^>]*>#is', '', $clean);
 
-        // Remove self-closing dangerous tags
-        $clean = preg_replace('#<(script|iframe|style|object|embed|applet)[^>]*>#is', '', $clean);
+        // 2. Whitelist safe formatting tags only
+        $allowedTags = '<p><br><strong><b><em><i><u><h2><h3><h4><h5><h6><ul><ol><li><a><img><div><span><blockquote><table><thead><tbody><tr><th><td><hr><figure><figcaption>';
+        $clean = strip_tags($clean, $allowedTags);
 
-        // Remove javascript: and vbscript: URIs
-        $clean = preg_replace('#(href|src)\s*=\s*["\']\s*(javascript|vbscript|data):[^"\']*["\']#is', '', $clean);
+        // 3. Remove javascript:, vbscript:, data: URIs in attributes
+        $clean = preg_replace('#(href|src)\s*=\s*(["\'])\s*(javascript|vbscript|data):.*?\2#is', '', $clean);
+        $clean = preg_replace('#(href|src)\s*=\s*(javascript|vbscript|data):[^\s>]*#is', '', $clean);
 
-        // Remove inline on* event handlers (onclick, onload, onerror, onmouseover, etc.)
-        $clean = preg_replace('#\s+on[a-z]+\s*=\s*(["\'][^"\']*["\']|[^\s>]+)#is', '', $clean);
+        // 4. Remove all on* event handlers (support whitespace, slash, or tag-boundary preceding the event handler)
+        $clean = preg_replace('#[\s/]+on[a-z0-9_-]+\s*=\s*(["\'][^"\']*["\']|[^\s>]+)#is', '', $clean);
 
         return trim($clean);
     }

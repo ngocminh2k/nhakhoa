@@ -15,9 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('METHOD_NOT_ALLOWED', 'Chỉ chấp nhận phương thức POST.', 405);
 }
 
-// 1. Rate Limiting: Max 10 bookings per IP per hour
-if (!RateLimiter::check('booking_submit', 10, 3600)) {
-    Response::error('RATE_LIMITED', 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau 1 giờ.', 429);
+// 1. Rate Limiting: 30 bookings/15m per IP (phù hợp mạng 4G/CGNAT chung IP) & 300/phút toàn hệ thống (chống botnet DDoS)
+// ponytail: nâng lên Redis sliding-window khi hệ thống scale đa server. File-based LOCK_EX hiện tại chịu tốt hàng ngàn req/phút trên Mắt Bão.
+if (!RateLimiter::check('booking_submit', 30, 900)) {
+    Response::error('RATE_LIMITED', 'Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau 15 phút.', 429);
+}
+if (!RateLimiter::checkGlobal('booking_global_burst', 300, 60)) {
+    Response::error('SERVER_BUSY', 'Hệ thống đang tiếp nhận lượng đặt lịch đột biến. Vui lòng thử lại sau giây lát.', 429);
 }
 
 // 2. Parse JSON or Form Payload
@@ -87,11 +91,14 @@ try {
         'date'         => $result['date'],
         'time'         => $result['time'],
     ], 201);
+} catch (InvalidArgumentException $e) {
+    Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
 } catch (RuntimeException $e) {
     if ($e->getCode() === 409) {
         Response::error('SLOT_UNAVAILABLE', $e->getMessage(), 409);
     }
     Response::error('BOOKING_FAILED', $e->getMessage(), 400);
 } catch (Throwable $e) {
-    Response::error('SERVER_ERROR', 'Có lỗi xảy ra trong quá trình đặt lịch: ' . $e->getMessage(), 500);
+    $msg = (getenv('APP_ENV') === 'development') ? ('Có lỗi xảy ra: ' . $e->getMessage()) : 'Có lỗi xảy ra trong quá trình đặt lịch. Vui lòng thử lại sau.';
+    Response::error('SERVER_ERROR', $msg, 500);
 }
